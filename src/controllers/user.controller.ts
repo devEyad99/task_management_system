@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { User } from '../models';
+import { Task, User } from '../models';
 import bcrypt from 'bcrypt';
 import _ from 'lodash';
 import validator from 'validator';
@@ -37,7 +37,7 @@ export class UserController {
       });
 
       const newUser = _.omit(user.toJSON(), 'password');
-      const token = getAccessToken({ email, role });
+      const token = getAccessToken({ email, role, id: user.id });
 
       return res.status(201).json({
         message: 'User created successfully',
@@ -71,10 +71,11 @@ export class UserController {
       }
 
       const loggedUser = _.omit(user.toJSON(), 'password');
-      const token = getAccessToken({ email, role: user.role });
+      const token = getAccessToken({ email, role: user.role, id: user.id });
       const refreshToken = getRefreshToken({
         email: user.email,
         role: user.role,
+        id: user.id,
       });
 
       return res.status(200).json({
@@ -92,32 +93,60 @@ export class UserController {
   async getAllUsers(req: Request, res: Response) {
     try {
       const users = await User.findAll();
-      return res.status(200).json(users);
+      const usersWithoutPassword = users.map((user) =>
+        _.omit(user.toJSON(), 'password')
+      );
+      return res.status(200).json(usersWithoutPassword);
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: 'Internal Server Error' });
     }
   }
 
-  async getUser(req: Request, res: Response) {
+  async getUserById(req: Request, res: Response) {
     try {
       const { id } = req.params;
       const user = await User.findByPk(id);
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
-      return res.status(200).json(user);
+      const userWithoutPassword = _.omit(user.toJSON(), 'password');
+      return res.status(200).json(userWithoutPassword);
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: 'Internal Server Error' });
     }
   }
 
-  async currentUser(req: RequestWithUser, res: Response) {
-    return res.status(200).json({
-      message: 'You are authorized',
-      user: req.currentUser,
-    });
+  async getMe(req: RequestWithUser, res: Response) {
+    // find all task assigned to that user
+    try {
+      const tasks = await Task.findAll({
+        where: { assigned_to: req.currentUser?.id },
+      });
+
+      return res.status(200).json({
+        user: {
+          id: req.currentUser?.id,
+          email: req.currentUser?.email,
+          role: req.currentUser?.role,
+          tasks,
+        },
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: 'Internal Server Error' });
+    }
+  }
+  deleteUserById(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      User.destroy({ where: { id } });
+      return res.status(200).json({ message: 'User deleted successfully' });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: 'Internal Server Error' });
+    }
   }
   refreshToken(req: Request, res: Response) {
     const { refreshToken } = req.body;
@@ -132,11 +161,13 @@ export class UserController {
       const accessToken = getAccessToken({
         email: currentUser.email,
         role: currentUser.role,
+        id: currentUser.id,
       });
 
       const newRefreshToken = getRefreshToken({
         email: currentUser.email,
         role: currentUser.role,
+        id: currentUser.id,
       });
 
       return res.json({
