@@ -1,7 +1,7 @@
 //
 import { Request, Response } from 'express';
 
-import { Task } from '../models';
+import { Task, User } from '../models';
 
 export class TaskController {
   async createTask(req: Request, res: Response) {
@@ -14,7 +14,16 @@ export class TaskController {
         deadline,
         assigned_to,
       });
-      return res.status(201).json(task);
+      // retrun the user , that task assigned to him with the response
+      const user = await User.findOne({ where: { id: assigned_to } });
+
+      return res.status(201).json({
+        task,
+        user: {
+          id: user?.id,
+          name: user?.name,
+        },
+      });
     } catch (error) {
       return res.status(400).json({ message: 'Invalid request' });
     }

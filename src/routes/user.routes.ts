@@ -8,14 +8,6 @@ const router = AppRouter.getInstance();
 
 const userController = new UserController();
 
-router.post('/signup', (req, res, next) => {
-  userController.signup(req, res);
-});
-
-router.post('/login', (req, res, next) => {
-  userController.login(req, res);
-});
-
 router.get(
   '/getAllUsers',
   authenticate,
@@ -33,6 +25,11 @@ router.get('/getUser/:id', (req, res, next) => {
 router.get('/getMe', authenticate, (req, res, next) => {
   userController.getMe(req, res);
 });
+
+router.get('/my-tasks', authenticate, (req, res) => {
+  userController.getLoggedInUserTasks(req, res);
+});
+
 // delete user (onlu accessable by admin)
 router.delete(
   '/deleteUser/:id',
@@ -44,9 +41,9 @@ router.delete(
     userController.deleteUserById(req, res);
   }
 );
-// rouet for refresh token
-router.post('/refreshToken', (req, res, next) => {
-  userController.refreshToken(req, res);
+
+router.patch('/updateStatus/:id', authenticate, (req, res, next) => {
+  userController.updateTaskStatus(req, res);
 });
 
 export default router;

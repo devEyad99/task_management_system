@@ -8,7 +8,7 @@ class Task extends Model {
   public description!: string;
   public status!: string;
   public deadline!: Date;
-  public assignedTo!: number;
+  public assigned_to!: number;
 }
 Task.init(
   {

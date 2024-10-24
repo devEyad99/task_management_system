@@ -14,3 +14,17 @@ export const adminRole = (
   }
   next();
 };
+
+export const adminAndManagerRole = (
+  req: RequestWithUser,
+  res: Response,
+  next: NextFunction
+) => {
+  const role = req.currentUser?.role;
+  if (role !== 'admin' && role !== 'manager') {
+    return res.status(403).json({
+      message: 'You are not authorized to access this route',
+    });
+  }
+  next();
+};
