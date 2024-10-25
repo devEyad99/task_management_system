@@ -8,21 +8,23 @@ export const adminRole = (
 ) => {
   const role = req.currentUser?.role;
   if (role !== 'admin') {
-    return res
-      .status(403)
-      .json({ message: 'You are not authorized to access this route' });
+    return res.status(403).json({
+      extra: 'admin role',
+      message: 'You are not authorized to access this route',
+    });
   }
   next();
 };
 
-export const adminAndManagerRole = (
+export const managerRole = (
   req: RequestWithUser,
   res: Response,
   next: NextFunction
 ) => {
   const role = req.currentUser?.role;
-  if (role !== 'admin' && role !== 'manager') {
+  if (role !== 'manager' && role !== 'admin') {
     return res.status(403).json({
+      extra: 'manager role',
       message: 'You are not authorized to access this route',
     });
   }

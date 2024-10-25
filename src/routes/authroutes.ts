@@ -1,8 +1,5 @@
 //
-import { UserController } from '../controllers/user.controller';
 import { AppRouter } from '../AppRouter';
-import { authenticate } from '../middlewares/authenticate';
-import { adminRole } from '../middlewares/roleAccess';
 import { AuthController } from '../controllers/auth.controller';
 
 const router = AppRouter.getInstance();
