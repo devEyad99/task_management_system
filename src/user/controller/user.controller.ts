@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
-import { Task, User } from '../models';
+import { Task, User } from '../../models';
 import _ from 'lodash';
-import { RequestWithUser } from '../interfaces/RequestWithUser';
+import { RequestWithUser } from '../../interfaces/RequestWithUser';
 import { Op } from 'sequelize';
 export class UserController {
   async getAllUsers(req: Request, res: Response) {
@@ -66,9 +66,13 @@ export class UserController {
       return res.status(500).json({ message: 'Internal Server Error' });
     }
   }
-  deleteUserById(req: Request, res: Response) {
+  async deleteUserById(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const user = await User.findOne({ where: { id } });
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
       User.destroy({ where: { id } });
       return res.status(200).json({ message: 'User deleted successfully' });
     } catch (error) {

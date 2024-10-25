@@ -1,36 +1,35 @@
 //
 import { Request, Response } from 'express';
 import { Op } from 'sequelize';
-import { Task, User } from '../models';
+import { Task, User } from '../../models';
+import { CreateTaskResponseDto, DeleteTaskByIdResponseDto } from '../dtos';
 
 export class TaskController {
   async createTask(req: Request, res: Response) {
     try {
-      const { title, description, status, deadline, assigned_to } = req.body;
-      const task = await Task.create({
-        title,
-        description,
-        status,
-        deadline,
-        assigned_to,
-      });
-      // retrun the user , that task assigned to him with the response
-      const user = await User.findOne({ where: { id: assigned_to } });
+      const task = req.body;
+      const user = await User.findOne({ where: { id: req.body.assigned_to } });
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      await Task.create(task);
 
-      return res.status(201).json({
-        task,
-        user: {
-          id: user?.id,
-          name: user?.name,
-        },
-      });
+      const responseDto = CreateTaskResponseDto.factory(task, user);
+      const userInfo = {
+        id: user.id,
+        name: user.name,
+      };
+      responseDto.user = userInfo;
+      return res.status(201).json(responseDto);
     } catch (error) {
+      console.error(error);
       return res.status(400).json({ message: 'Invalid request' });
     }
   }
+
   async getAllTasks(req: Request, res: Response) {
     try {
-      const limit = parseInt(req.query.limit as string) || 5; // Corrected typo from 'limti' to 'limit'
+      const limit = parseInt(req.query.limit as string) || 5;
       const page = parseInt(req.query.page as string) || 1;
       const offset = (page - 1) * limit;
       const title = req.query.title as string;
@@ -68,8 +67,9 @@ export class TaskController {
       if (!task) {
         return res.status(404).json({ message: 'Task not found' });
       }
+
       await task.destroy();
-      return res.status(204).end();
+      res.status(200).send(DeleteTaskByIdResponseDto.fromTaskId());
     } catch (error) {
       console.error(error); // Log the error for debugging purposes
       return res.status(400).json({ message: 'Invalid request' });

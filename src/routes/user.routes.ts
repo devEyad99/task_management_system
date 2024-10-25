@@ -1,5 +1,5 @@
 //
-import { UserController } from '../controllers/user.controller';
+import { UserController } from '../user/controller/user.controller';
 import { AppRouter } from '../AppRouter';
 import { authenticate } from '../middlewares/authenticate';
 import { adminRole, managerRole } from '../middlewares/roleAccess';

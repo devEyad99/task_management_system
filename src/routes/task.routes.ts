@@ -1,5 +1,5 @@
 //
-import { TaskController } from '../controllers/task.controller';
+import { TaskController } from '../task/controller/task.controller';
 import { AppRouter } from '../AppRouter';
 import { authenticate } from '../middlewares/authenticate';
 import { adminRole, managerRole } from '../middlewares/roleAccess';
