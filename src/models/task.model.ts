@@ -37,7 +37,7 @@ Task.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'users', // Make sure this matches the table name
+        model: 'users',
         key: 'id',
       },
     },

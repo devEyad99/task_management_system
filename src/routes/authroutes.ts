@@ -5,10 +5,12 @@ import { AuthController } from '../controllers/auth.controller';
 const router = AppRouter.getInstance();
 const authController = new AuthController();
 
+// route for signup
 router.post('/signup', (req, res, next) => {
   authController.signup(req, res);
 });
 
+// route for login
 router.post('/login', (req, res, next) => {
   authController.login(req, res);
 });

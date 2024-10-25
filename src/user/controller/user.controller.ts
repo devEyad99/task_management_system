@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { Task, User } from '../../models';
 import _ from 'lodash';
 import { RequestWithUser } from '../../interfaces/RequestWithUser';
@@ -6,8 +6,8 @@ import { Op } from 'sequelize';
 export class UserController {
   async getAllUsers(req: Request, res: Response) {
     try {
-      const limit = parseInt(req.query.limit as string) || 5; // Parse limit to ensure it's a number
-      const page = parseInt(req.query.page as string) || 1; // Parse page to ensure it's a number
+      const limit = parseInt(req.query.limit as string) || 5;
+      const page = parseInt(req.query.page as string) || 1;
       const offset = (page - 1) * limit || 0;
       const name = req.query.name as string;
       const whereClause = name ? { name: { [Op.like]: `%${name}%` } } : {};
@@ -46,7 +46,7 @@ export class UserController {
   }
 
   async getMe(req: RequestWithUser, res: Response) {
-    // find all task assigned to that user
+    // find all tasks assigned to that user
     try {
       const tasks = await Task.findAll({
         where: { assigned_to: req.currentUser?.id },

@@ -2,12 +2,13 @@
 import { UserController } from '../user/controller/user.controller';
 import { AppRouter } from '../AppRouter';
 import { authenticate } from '../middlewares/authenticate';
-import { adminRole, managerRole } from '../middlewares/roleAccess';
+import { adminRole, managerAndAdminRole } from '../middlewares/roleAccess';
 
 const router = AppRouter.getInstance();
 
 const userController = new UserController();
 
+// create user (only accessable by admin)
 router.get(
   '/getAllUsers',
   authenticate,
@@ -18,11 +19,13 @@ router.get(
     userController.getAllUsers(req, res);
   }
 );
+//
+// get user by id (only accessable by admin and manager)
 router.get(
   '/getUser/:id',
   authenticate,
   (req, res, next) => {
-    managerRole(req, res, next);
+    managerAndAdminRole(req, res, next);
   },
   (req, res, next) => {
     userController.getUserById(req, res);
@@ -51,9 +54,11 @@ router.delete(
   }
 );
 
+// update task status (for user that owned task)
 router.patch('/updateStatus/:id', authenticate, (req, res, next) => {
   userController.updateTaskStatus(req, res);
 });
+// update user (only accessable by admin)
 router.patch(
   '/updateUser/:id',
   authenticate,

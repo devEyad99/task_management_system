@@ -16,7 +16,7 @@ export const adminRole = (
   next();
 };
 
-export const managerRole = (
+export const managerAndAdminRole = (
   req: RequestWithUser,
   res: Response,
   next: NextFunction
