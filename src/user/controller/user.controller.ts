@@ -1,7 +1,7 @@
+import { RequestWithUser } from './../../interfaces/RequestWithUser';
 import { Request, Response } from 'express';
 import { Task, User } from '../../models';
 import _ from 'lodash';
-import { RequestWithUser } from '../../interfaces/RequestWithUser';
 import { Op } from 'sequelize';
 export class UserController {
   async getAllUsers(req: Request, res: Response) {
@@ -58,6 +58,7 @@ export class UserController {
           name: req.currentUser?.name,
           email: req.currentUser?.email,
           role: req.currentUser?.role,
+          profile_image: req.currentUser?.profile_image,
           tasks,
         },
       });
@@ -136,6 +137,26 @@ export class UserController {
       }
       await user.save();
       return res.status(200).json(user);
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: 'Internal Server Error' });
+    }
+  }
+  // upload user profile image
+  async uploadProfileImage(req: RequestWithUser, res: Response) {
+    try {
+      const id = req.currentUser?.id;
+      const user = await User.findByPk(id);
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      if (req.file) {
+        user.profile_image = req.file.path;
+        await user.save();
+        return res.status(200).json(user);
+      }
+      return res.status(400).json({ message: 'Bad request' });
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: 'Internal Server Error' });

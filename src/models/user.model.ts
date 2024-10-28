@@ -8,6 +8,7 @@ class User extends Model {
   public email!: string;
   public password!: string;
   public role!: string;
+  public profile_image!: string;
 }
 
 User.init(
@@ -33,6 +34,10 @@ User.init(
     role: {
       type: DataTypes.ENUM('admin', 'manager', 'employee'),
       allowNull: false,
+    },
+    profile_image: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
   },
   {

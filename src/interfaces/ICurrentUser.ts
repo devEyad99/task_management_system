@@ -4,4 +4,5 @@ export interface ICurrentUser {
   email: string;
   role: string;
   id: number;
+  profile_image: string;
 }

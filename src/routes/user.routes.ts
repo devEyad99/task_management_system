@@ -3,6 +3,7 @@ import { UserController } from '../user/controller/user.controller';
 import { AppRouter } from '../AppRouter';
 import { authenticate } from '../middlewares/authenticate';
 import { adminRole, managerAndAdminRole } from '../middlewares/roleAccess';
+import upload from '../utiles/upload';
 
 const router = AppRouter.getInstance();
 
@@ -69,5 +70,13 @@ router.patch(
     userController.updateUser(req, res);
   }
 );
-
+// route for upload user profile image that i implemented in user controller
+router.post(
+  '/profile/upload',
+  upload.single('profile_image'),
+  authenticate,
+  (req, res) => {
+    userController.uploadProfileImage(req, res);
+  }
+);
 export default router;
