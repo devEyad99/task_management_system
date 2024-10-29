@@ -13,7 +13,7 @@ import { authenticate } from '../middlewares/authenticate';
 
 @controller('/test')
 class TestController {
-  @get('/')
+  @get('/get')
   getTest(req: Request, res: Response) {
     console.log('GET /test/');
     res.send('get test');

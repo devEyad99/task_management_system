@@ -2,13 +2,7 @@ import 'reflect-metadata';
 import { AppRouter } from '../AppRouter';
 import { Methods } from './Methods';
 import { MetadataKeys } from './MetadataKeys';
-import {
-  NextFunction,
-  Request,
-  Response,
-  RequestHandler,
-  Router,
-} from 'express';
+import { NextFunction, Request, Response, RequestHandler } from 'express';
 
 function bodyValidators(keys: string[]): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -27,10 +21,11 @@ function bodyValidators(keys: string[]): RequestHandler {
 }
 
 export function controller(routePrefix: string) {
-  return function (target: Function) {
-    const router = AppRouter.getInstance(); // Using the singleton AppRouter instance
+  return function (target: Function): void {
+    const router = AppRouter.getInstance();
 
-    for (const key in target.prototype) {
+    // Use Object.getOwnPropertyNames for ES2015 compatibility
+    for (const key of Object.getOwnPropertyNames(target.prototype)) {
       const routeHandler = target.prototype[key];
       const path = Reflect.getMetadata(
         MetadataKeys.path,
@@ -50,7 +45,6 @@ export function controller(routePrefix: string) {
         [];
       const validator = bodyValidators(requiredBodyProps);
 
-      // Register the route if path and method are defined
       if (path && method) {
         router[method](
           `${routePrefix}${path}`,
