@@ -6,7 +6,7 @@ import { NextFunction, Request, Response, RequestHandler } from 'express';
 
 function bodyValidators(keys: string[]): RequestHandler {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.body) {
+    if (!req.body || !req.params) {
       res.status(422).send('Invalid request');
       return;
     }

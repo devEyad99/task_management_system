@@ -1,12 +1,12 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../utiles/jwt';
-import { RequestWithUser } from '../interfaces/RequestWithUser';
+import { User } from '../models';
 
-export const authenticate = (
-  req: RequestWithUser,
+export const authenticate = async (
+  req: Request,
   res: Response,
   next: NextFunction
-): void => {
+): Promise<void> => {
   const authHeader = req.headers['authorization'];
   const token = authHeader?.split(' ')[1];
 
@@ -19,7 +19,13 @@ export const authenticate = (
 
   try {
     const currentUser = verifyAccessToken(token);
-    req.currentUser = currentUser;
+    const user = await User.findOne({ where: { id: currentUser.id } });
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+
+    req.currentUser = user;
     next();
   } catch (error) {
     console.error('Token verification failed:', error);

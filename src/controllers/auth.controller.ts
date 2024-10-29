@@ -9,15 +9,15 @@ import {
   getRefreshToken,
   verifyRefreshToken,
 } from '../utiles/jwt';
+import { bodyValidator, controller, post } from '../decorators';
 
+@controller('/auth')
 export class AuthController {
+  @post('/signup')
+  @bodyValidator('name', 'email', 'password', 'role')
   async signup(req: Request, res: Response) {
     try {
       const { name, email, password, role } = req.body;
-
-      if (!name || !email || !password || !role) {
-        return res.status(400).json({ message: 'Missing required fields' });
-      }
 
       if (!validator.isEmail(email)) {
         return res.status(400).json({ message: 'Invalid email format' });
@@ -50,15 +50,11 @@ export class AuthController {
     }
   }
 
+  @post('/login')
+  @bodyValidator('email', 'password')
   async login(req: Request, res: Response) {
     try {
       const { email, password } = req.body;
-
-      if (!email || !password) {
-        return res
-          .status(400)
-          .json({ message: 'Email and password are required' });
-      }
 
       const user = await User.findOne({ where: { email } });
       if (!user) {
@@ -90,14 +86,11 @@ export class AuthController {
     }
   }
 
+  @post('/refreshToken')
+  @bodyValidator('refreshToken')
   refreshToken(req: Request, res: Response) {
-    const { refreshToken } = req.body;
-
-    if (!refreshToken) {
-      return res.status(400).json({ message: 'Refresh token is required' });
-    }
-
     try {
+      const { refreshToken } = req.body;
       const currentUser = verifyRefreshToken(refreshToken);
 
       const accessToken = getAccessToken({

@@ -1,9 +1,25 @@
-import { RequestWithUser } from './../../interfaces/RequestWithUser';
 import { Request, Response } from 'express';
 import { Task, User } from '../../models';
 import _ from 'lodash';
 import { Op } from 'sequelize';
+import {
+  controller,
+  get,
+  use,
+  del,
+  patch,
+  bodyValidator,
+  post,
+} from '../../decorators';
+import { authenticate } from '../../middlewares/authenticate';
+import { adminRole, managerAndAdminRole } from '../../middlewares/roleAccess';
+import upload from '../../utiles/upload';
+
+@controller('/user')
 export class UserController {
+  @use(adminRole)
+  @use(authenticate)
+  @get('/getAllUsers')
   async getAllUsers(req: Request, res: Response) {
     try {
       const limit = parseInt(req.query.limit as string) || 5;
@@ -30,6 +46,9 @@ export class UserController {
     }
   }
 
+  @use(managerAndAdminRole)
+  @use(authenticate)
+  @get('/getUserById/:id')
   async getUserById(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -45,28 +64,29 @@ export class UserController {
     }
   }
 
-  async getMe(req: RequestWithUser, res: Response) {
+  @use(authenticate)
+  @get('/getMe')
+  async getMe(req: Request, res: Response) {
     // find all tasks assigned to that user
     try {
       const tasks = await Task.findAll({
         where: { assigned_to: req.currentUser?.id },
       });
-
+      // console.log(req.currentUser);
+      const user = req.currentUser;
       return res.status(200).json({
-        user: {
-          id: req.currentUser?.id,
-          name: req.currentUser?.name,
-          email: req.currentUser?.email,
-          role: req.currentUser?.role,
-          profile_image: req.currentUser?.profile_image,
-          tasks,
-        },
+        user,
+        tasks,
       });
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: 'Internal Server Error' });
     }
   }
+
+  @use(adminRole)
+  @use(authenticate)
+  @del('/deleteUser/:id')
   async deleteUserById(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -82,7 +102,9 @@ export class UserController {
     }
   }
 
-  async getLoggedInUserTasks(req: RequestWithUser, res: Response) {
+  @use(authenticate)
+  @get('/my-tasks')
+  async getMyTasks(req: Request, res: Response) {
     try {
       const userId = req.currentUser?.id;
 
@@ -97,7 +119,10 @@ export class UserController {
     }
   }
 
-  async updateTaskStatus(req: RequestWithUser, res: Response) {
+  @bodyValidator('status')
+  @use(authenticate)
+  @patch('/updateStatus/:id')
+  async updateTaskStatus(req: Request, res: Response) {
     try {
       const { id } = req.params;
       const { status } = req.body;
@@ -118,7 +143,11 @@ export class UserController {
       return res.status(500).json({ message: 'Internal Server Error' });
     }
   }
-  async updateUser(req: RequestWithUser, res: Response) {
+
+  @use(adminRole)
+  @use(authenticate)
+  @patch('/updateUser/:id')
+  async updateUser(req: Request, res: Response) {
     try {
       const { id } = req.params;
       const { name, email, role } = req.body;
@@ -143,7 +172,10 @@ export class UserController {
     }
   }
   // upload user profile image
-  async uploadProfileImage(req: RequestWithUser, res: Response) {
+  @use(authenticate)
+  @use(upload.single('profile_image'))
+  @post('/profile/upload')
+  async uploadProfileImage(req: Request, res: Response) {
     try {
       const id = req.currentUser?.id;
       const user = await User.findByPk(id);
