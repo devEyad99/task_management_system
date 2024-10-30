@@ -1,8 +1,8 @@
 //
-import { Response, NextFunction } from 'express';
-import { RequestWithUser } from '../interfaces/RequestWithUser';
+import { Response, NextFunction, Request } from 'express';
+
 export const adminRole = (
-  req: RequestWithUser,
+  req: Request,
   res: Response,
   next: NextFunction
 ): void => {
@@ -19,7 +19,7 @@ export const adminRole = (
 };
 
 export const managerAndAdminRole = (
-  req: RequestWithUser,
+  req: Request,
   res: Response,
   next: NextFunction
 ): void => {

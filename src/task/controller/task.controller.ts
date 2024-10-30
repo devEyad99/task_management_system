@@ -3,8 +3,15 @@ import { Request, Response } from 'express';
 import { Op } from 'sequelize';
 import { Task, User } from '../../models';
 import { CreateTaskResponseDto, DeleteTaskByIdResponseDto } from '../dtos';
+import { controller, del, get, post, use } from '../../decorators';
+import { managerAndAdminRole } from '../../middlewares/roleAccess';
+import { authenticate } from '../../middlewares/authenticate';
 
+@controller('/task')
 export class TaskController {
+  @use(managerAndAdminRole)
+  @use(authenticate)
+  @post('/createTask')
   async createTask(req: Request, res: Response) {
     try {
       const task = req.body;
@@ -27,6 +34,9 @@ export class TaskController {
     }
   }
 
+  @use(managerAndAdminRole)
+  @use(authenticate)
+  @get('/getAllTasks')
   async getAllTasks(req: Request, res: Response) {
     try {
       const limit = parseInt(req.query.limit as string) || 5;
@@ -41,12 +51,19 @@ export class TaskController {
         offset: offset,
       });
 
-      return res.status(200).json(tasks);
+      return res.status(200).json({
+        result: tasks.length,
+        tasks,
+      });
     } catch (error) {
       console.error(error); // Log the error for debugging purposes
       return res.status(400).json({ message: 'Invalid request' });
     }
   }
+
+  @use(managerAndAdminRole)
+  @use(authenticate)
+  @get('/getTask/:id')
   async getTaskById(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -60,6 +77,9 @@ export class TaskController {
       return res.status(400).json({ message: 'Invalid request' });
     }
   }
+  @use(managerAndAdminRole)
+  @use(authenticate)
+  @del('/deleteTask/:id')
   async deleteTask(req: Request, res: Response) {
     try {
       const { id } = req.params;
