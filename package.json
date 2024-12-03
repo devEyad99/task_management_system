@@ -14,7 +14,10 @@
     "bcrypt": "^5.1.1",
     "body-parser": "^1.20.3",
     "class-validator": "^0.14.1",
+<<<<<<< HEAD
     "cors": "^2.8.5",
+=======
+>>>>>>> origin/master
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "jsonwebtoken": "^9.0.2",
@@ -29,7 +32,10 @@
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "@types/body-parser": "^1.19.5",
+<<<<<<< HEAD
     "@types/cors": "^2.8.17",
+=======
+>>>>>>> origin/master
     "@types/express": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/multer": "^1.4.12",

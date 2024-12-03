@@ -18,6 +18,7 @@ const corsOptions = {
 
 // Use CORS middleware with permissive configuration
 app.use(cors(corsOptions));
+
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 

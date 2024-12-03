@@ -6,7 +6,11 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+<<<<<<< HEAD
 const PORT = process.env.PORT || 3001;
+=======
+const PORT = process.env.PORT || 3000;
+>>>>>>> origin/master
 
 async function startServer() {
   try {
