@@ -1,13 +1,15 @@
 import multer from 'multer';
 import path from 'path';
+import { Request } from 'express';
 
 // Set storage engine
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, '../uploads'));
+    cb(null, path.join(__dirname, '../../uploads'));
   },
   filename: function (req, file, cb) {
-    cb(null, new Date().toISOString().replace(/:/g, '-') + file.originalname);
+    const timestamp = new Date().toISOString().replace(/:/g, '-');
+    cb(null, `${timestamp}-${file.originalname}`);
   },
 });
 
@@ -20,17 +22,16 @@ const upload = multer({
   },
 });
 
-// check file type
+// Check file type
 function checkFileType(
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) {
-  // Allowed ext
+  // Allowed extensions
   const filetypes = /jpeg|jpg|png|gif/;
-  // Check ext
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  // Check mime
   const mimetype = filetypes.test(file.mimetype);
+
   if (mimetype && extname) {
     return cb(null, true);
   } else {

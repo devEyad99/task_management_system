@@ -7,6 +7,7 @@ import './controllers/auth.controller';
 import './user/controller/user.controller';
 import './task/controller/task.controller';
 import cors from 'cors';
+import path from 'path';
 const app = express();
 
 // Enable CORS for all origins and all methods
@@ -21,6 +22,9 @@ app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+console.log('Uploads directory:', path.join(__dirname, '../uploads'));
 
 app.use(AppRouter.getInstance());
 

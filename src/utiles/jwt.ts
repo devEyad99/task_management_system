@@ -28,8 +28,8 @@ function grantToken(secret: string, expiresIn: string | number) {
   };
 }
 
-export const getAccessToken = grantToken(SECRET_KEY, '30m');
-export const getRefreshToken = grantToken(REFRESH_TOKEN_SECRET, '1h');
+export const getAccessToken = grantToken(SECRET_KEY, '1h');
+export const getRefreshToken = grantToken(REFRESH_TOKEN_SECRET, '1d');
 
 function verifyToken(secret: string) {
   return function (token: string): ICurrentUser {

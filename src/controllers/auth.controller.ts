@@ -36,21 +36,14 @@ export class AuthController {
         role,
       });
 
-<<<<<<< HEAD
       const userWithoutPassword = _.omit(user.toJSON(), 'password');
-=======
-      const newUser = _.omit(user.toJSON(), 'password');
->>>>>>> origin/master
+
       const token = getAccessToken({ email, role, id: user.id });
 
       return res.status(201).json({
         message: 'User created successfully',
         token,
-<<<<<<< HEAD
         user: userWithoutPassword,
-=======
-        user: newUser,
->>>>>>> origin/master
       });
     } catch (error) {
       console.error(error);
@@ -74,11 +67,8 @@ export class AuthController {
         return res.status(401).json({ message: 'Invalid email or password' });
       }
 
-<<<<<<< HEAD
       const userWithoutPassword = _.omit(user.toJSON(), 'password');
-=======
-      const loggedUser = _.omit(user.toJSON(), 'password');
->>>>>>> origin/master
+
       const token = getAccessToken({ email, role: user.role, id: user.id });
       const refreshToken = getRefreshToken({
         email: user.email,
@@ -90,11 +80,7 @@ export class AuthController {
         message: 'Login successful',
         token,
         refreshToken,
-<<<<<<< HEAD
         user: userWithoutPassword,
-=======
-        user: loggedUser,
->>>>>>> origin/master
       });
     } catch (error) {
       console.error(error);

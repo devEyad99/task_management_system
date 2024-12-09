@@ -45,13 +45,23 @@ export class TaskController {
       const title = req.query.title as string;
       const whereClause = title ? { title: { [Op.like]: `%${title}%` } } : {};
 
+      const totalTasks = await Task.count({ where: whereClause });
+      if (totalTasks === 0) {
+        return res.status(200).json({ message: 'No tasks found' });
+      }
+
       const tasks = await Task.findAll({
         where: whereClause,
         limit: limit,
         offset: offset,
       });
 
+      // Calculate total pages
+      const totalPages = Math.ceil(totalTasks / limit);
+
       return res.status(200).json({
+        totalPages,
+        totalTasks,
         result: tasks.length,
         tasks,
       });

@@ -183,12 +183,28 @@ export class UserController {
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
+
       if (req.file) {
-        user.profile_image = req.file.path;
+        // Save the relative path for the uploaded image
+        // user.profile_image = `/uploads/${req.file.filename}`;
+        user.profile_image = `/uploads/${encodeURIComponent(
+          req.file.filename
+        )}`;
         await user.save();
-        return res.status(200).json(user);
+
+        return res.status(200).json({
+          message: 'Profile image updated successfully',
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            profile_image: user.profile_image, // Relative path
+          },
+        });
       }
-      return res.status(400).json({ message: 'Bad request' });
+
+      return res.status(400).json({ message: 'Bad request, no file uploaded' });
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: 'Internal Server Error' });
