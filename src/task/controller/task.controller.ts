@@ -47,7 +47,7 @@ export class TaskController {
 
       const totalTasks = await Task.count({ where: whereClause });
       if (totalTasks === 0) {
-        return res.status(200).json({ message: 'No tasks found' });
+        return res.status(401).json({ message: 'No tasks found' });
       }
 
       const tasks = await Task.findAll({
