@@ -33,16 +33,17 @@ export class UserController {
         offset: offset,
       });
 
-      const totlaUsers = await User.count({ where: whereClause });
-      if (totlaUsers === 0) {
+      const totalUsers = await User.count({ where: whereClause });
+      console.log(totalUsers);
+      if (totalUsers === 0) {
         return res.status(401).json({ message: 'No users found' });
       }
 
-      const totalPages = Math.ceil(totlaUsers / limit);
+      const totalPages = Math.ceil(totalUsers / limit);
 
       const allUsers = users.map((user) => _.omit(user.toJSON(), 'password'));
       return res.status(200).json({
-        totlaUsers,
+        totalUsers,
         totalPages,
         results: users.length,
         allUsers,
