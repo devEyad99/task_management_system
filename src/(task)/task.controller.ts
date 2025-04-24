@@ -1,11 +1,11 @@
 //
 import { Request, Response } from 'express';
 import { Op } from 'sequelize';
-import { Task, User } from '../../models';
-import { CreateTaskResponseDto, DeleteTaskByIdResponseDto } from '../dtos';
-import { controller, del, get, post, use } from '../../decorators';
-import { managerAndAdminRole } from '../../middlewares/roleAccess';
-import { authenticate } from '../../middlewares/authenticate';
+import { Task, User } from '../models';
+import { CreateTaskResponseDto, DeleteTaskByIdResponseDto } from './dtos';
+import { controller, del, get, post, use } from '../decorators';
+import { managerAndAdminRole } from '../middlewares/roleAccess';
+import { authenticate } from '../middlewares/authenticate';
 
 @controller('/task')
 export class TaskController {

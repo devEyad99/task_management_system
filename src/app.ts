@@ -3,9 +3,9 @@ import bodyParser from 'body-parser';
 import express from 'express';
 import { AppRouter } from './AppRouter';
 
-import './controllers/auth.controller';
-import './user/controller/user.controller';
-import './task/controller/task.controller';
+import './(auth)/auth.controller';
+import './(user)/user.controller';
+import './(task)/task.controller';
 import cors from 'cors';
 import path from 'path';
 const app = express();

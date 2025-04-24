@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Task, User } from '../../models';
+import { Task, User } from '../models';
 import _ from 'lodash';
 import { Op } from 'sequelize';
 import {
@@ -10,10 +10,10 @@ import {
   patch,
   bodyValidator,
   post,
-} from '../../decorators';
-import { authenticate } from '../../middlewares/authenticate';
-import { adminRole, managerAndAdminRole } from '../../middlewares/roleAccess';
-import upload from '../../utiles/upload';
+} from '../decorators';
+import { authenticate } from '../middlewares/authenticate';
+import { adminRole, managerAndAdminRole } from '../middlewares/roleAccess';
+import upload from '../utiles/upload';
 
 @controller('/user')
 export class UserController {
