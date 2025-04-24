@@ -1,4 +1,3 @@
-//
 import './models/index';
 import sequelize from './config/database';
 import app from './app';
