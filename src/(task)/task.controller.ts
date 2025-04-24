@@ -1,108 +1,47 @@
-//
 import { Request, Response } from 'express';
-import { Op } from 'sequelize';
-import { Task, User } from '../models';
-import { CreateTaskResponseDto, DeleteTaskByIdResponseDto } from './dtos';
-import { controller, del, get, post, use } from '../decorators';
-import { managerAndAdminRole } from '../middlewares/roleAccess';
-import { authenticate } from '../middlewares/authenticate';
+import { TaskService } from './task.service';
 
-@controller('/task')
 export class TaskController {
-  @use(managerAndAdminRole)
-  @use(authenticate)
-  @post('/createTask')
-  async createTask(req: Request, res: Response) {
-    try {
-      const task = req.body;
-      const user = await User.findOne({ where: { id: req.body.assigned_to } });
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-      await Task.create(task);
+  constructor(private readonly taskService: TaskService) {}
 
-      const responseDto = CreateTaskResponseDto.factory(task, user);
-      const userInfo = {
-        id: user.id,
-        name: user.name,
-      };
-      responseDto.user = userInfo;
-      return res.status(201).json(responseDto);
-    } catch (error) {
-      console.error(error);
-      return res.status(400).json({ message: 'Invalid request' });
+  createTask = async (req: Request, res: Response) => {
+    try {
+      const result = await this.taskService.createTask(req.body);
+      res.status(201).json(result);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
     }
-  }
+  };
 
-  @use(managerAndAdminRole)
-  @use(authenticate)
-  @get('/getAllTasks')
-  async getAllTasks(req: Request, res: Response) {
+  getAllTasks = async (req: Request, res: Response) => {
     try {
-      const limit = parseInt(req.query.limit as string) || 5;
-      const page = parseInt(req.query.page as string) || 1;
-      const offset = (page - 1) * limit;
-      const title = req.query.title as string;
-      const whereClause = title ? { title: { [Op.like]: `%${title}%` } } : {};
-
-      const totalTasks = await Task.count({ where: whereClause });
-      if (totalTasks === 0) {
-        return res.status(401).json({ message: 'No tasks found' });
-      }
-
-      const tasks = await Task.findAll({
-        where: whereClause,
-        limit: limit,
-        offset: offset,
+      const { limit, page, title } = req.query;
+      const result = await this.taskService.getAllTasks({
+        limit: Number(limit),
+        page: Number(page),
+        title: title as string,
       });
-
-      // Calculate total pages
-      const totalPages = Math.ceil(totalTasks / limit);
-
-      return res.status(200).json({
-        totalPages,
-        totalTasks,
-        result: tasks.length,
-        tasks,
-      });
-    } catch (error) {
-      console.error(error); // Log the error for debugging purposes
-      return res.status(400).json({ message: 'Invalid request' });
+      res.status(200).json(result);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
     }
-  }
+  };
 
-  @use(managerAndAdminRole)
-  @use(authenticate)
-  @get('/getTask/:id')
-  async getTaskById(req: Request, res: Response) {
+  getTaskById = async (req: Request, res: Response) => {
     try {
-      const { id } = req.params;
-      const task = await Task.findByPk(id);
-      if (!task) {
-        return res.status(404).json({ message: 'Task not found' });
-      }
-      return res.status(200).json(task);
-    } catch (error) {
-      console.error(error); // Log the error for debugging purposes
-      return res.status(400).json({ message: 'Invalid request' });
+      const result = await this.taskService.getTaskById(req.params.id);
+      res.status(200).json(result);
+    } catch (err: any) {
+      res.status(404).json({ message: err.message });
     }
-  }
-  @use(managerAndAdminRole)
-  @use(authenticate)
-  @del('/deleteTask/:id')
-  async deleteTask(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const task = await Task.findByPk(id);
-      if (!task) {
-        return res.status(404).json({ message: 'Task not found' });
-      }
+  };
 
-      await task.destroy();
-      res.status(200).send(DeleteTaskByIdResponseDto.fromTaskId());
-    } catch (error) {
-      console.error(error); // Log the error for debugging purposes
-      return res.status(400).json({ message: 'Invalid request' });
+  deleteTask = async (req: Request, res: Response) => {
+    try {
+      const result = await this.taskService.deleteTask(req.params.id);
+      res.status(200).json(result);
+    } catch (err: any) {
+      res.status(404).json({ message: err.message });
     }
-  }
+  };
 }

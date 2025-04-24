@@ -1,5 +1,5 @@
 // //
-import { Task, User } from '../../models';
+import { Task } from '../../models';
 
 export class CreateTaskResponseDto {
   task?: {
