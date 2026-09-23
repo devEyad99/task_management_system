@@ -1,13 +1,41 @@
 import { TaskRepository } from './helper/task.repository';
-import { CreateTaskResponseDto, DeleteTaskByIdResponseDto } from './dto';
-
+import {
+  CreateTaskDto,
+  CreateTaskResponseDto,
+  DeleteTaskByIdResponseDto,
+} from './dto';
+import { AppError } from '../errors/AppError';
+import {
+  parsePagination,
+  rejectUnknownFields,
+  requireDate,
+  requireObject,
+  requirePositiveInteger,
+  requireString,
+  requireTaskStatus,
+} from '../helper/validation';
 
 export class TaskService {
   constructor(private taskRepo: TaskRepository) {}
 
-  async createTask(taskData: any) {
+  async createTask(input: unknown) {
+    const data = requireObject(input);
+    rejectUnknownFields(data, [
+      'title',
+      'description',
+      'status',
+      'deadline',
+      'assigned_to',
+    ]);
+    const taskData: CreateTaskDto = {
+      title: requireString(data.title, 'title', { max: 200 }),
+      description: requireString(data.description, 'description', { max: 5000 }),
+      status: requireTaskStatus(data.status),
+      deadline: requireDate(data.deadline, 'deadline'),
+      assigned_to: requirePositiveInteger(data.assigned_to, 'assigned_to'),
+    };
     const user = await this.taskRepo.findUserById(taskData.assigned_to);
-    if (!user) throw new Error('User not found');
+    if (!user) throw new AppError(404, 'User not found');
 
     const task = await this.taskRepo.createTask(taskData);
 
@@ -17,14 +45,17 @@ export class TaskService {
     return responseDto;
   }
 
-  async getAllTasks(query: any) {
-    const limit = parseInt(query.limit) || 5;
-    const page = parseInt(query.page) || 1;
-    const offset = (page - 1) * limit;
-    const title = query.title;
+  async getAllTasks(query: Record<string, unknown>) {
+    const { limit, offset } = parsePagination(query.page, query.limit);
+    const title =
+      query.title === undefined
+        ? undefined
+        : requireString(query.title, 'title', { max: 200 });
 
-    const totalTasks = await this.taskRepo.countTasksByTitle(title);
-    const tasks = await this.taskRepo.findTasks(title, limit, offset);
+    const [totalTasks, tasks] = await Promise.all([
+      this.taskRepo.countTasksByTitle(title),
+      this.taskRepo.findTasks(title, limit, offset),
+    ]);
     const totalPages = Math.ceil(totalTasks / limit);
 
     return {
@@ -35,13 +66,15 @@ export class TaskService {
     };
   }
 
-  async getTaskById(id: string) {
+  async getTaskById(idValue: unknown) {
+    const id = requirePositiveInteger(idValue, 'id');
     const task = await this.taskRepo.findTaskById(id);
-    if (!task) throw new Error('Task not found');
+    if (!task) throw new AppError(404, 'Task not found');
     return task;
   }
 
-  async deleteTask(id: string) {
+  async deleteTask(idValue: unknown) {
+    const id = requirePositiveInteger(idValue, 'id');
     await this.getTaskById(id);
     await this.taskRepo.deleteTask(id);
     return DeleteTaskByIdResponseDto.fromTaskId();

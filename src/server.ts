@@ -14,7 +14,13 @@ async function startServer() {
       console.log(`Server is running on port ${PORT}...`);
     });
   } catch (error) {
-    console.error('Unable to start server:', error);
+    console.error(
+      'Unable to start server:',
+      process.env.NODE_ENV === 'production' && error instanceof Error
+        ? error.name
+        : error
+    );
+    process.exitCode = 1;
   }
 }
 

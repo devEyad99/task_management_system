@@ -1,8 +1,10 @@
 import { Task, User } from '../../models';
-import { Op } from 'sequelize';
+import { Op, WhereOptions } from 'sequelize';
+import { CreateTaskDto } from '../dto';
+import { TaskStatus } from '../../models/task.model';
 
 export class TaskRepository {
-  async createTask(data: any) {
+  async createTask(data: CreateTaskDto) {
     return Task.create(data);
   }
 
@@ -10,21 +12,42 @@ export class TaskRepository {
     return User.findOne({ where: { id: userId } });
   }
 
+  private getTitleFilter(title?: string): WhereOptions<Task> {
+    return title ? { title: { [Op.iLike]: `%${title}%` } } : {};
+  }
+
   async countTasksByTitle(title?: string) {
-    const whereClause = title ? { title: { [Op.like]: `%${title}%` } } : {};
+    const whereClause = this.getTitleFilter(title);
     return Task.count({ where: whereClause });
   }
 
-  async findTasks(title?: string, limit?: number, offset?: number) {
-    const whereClause = title ? { title: { [Op.like]: `%${title}%` } } : {};
-    return Task.findAll({ where: whereClause, limit, offset });
+  async findTasks(title: string | undefined, limit: number, offset: number) {
+    const whereClause = this.getTitleFilter(title);
+    return Task.findAll({
+      where: whereClause,
+      limit,
+      offset,
+      order: [['createdAt', 'DESC']],
+    });
   }
 
-  async findTaskById(id: string) {
+  async findTaskById(id: number) {
     return Task.findByPk(id);
   }
 
-  async deleteTask(id: string) {
+  async deleteTask(id: number) {
     return Task.destroy({ where: { id } });
+  }
+
+  async findTasksByUserId(userId: number) {
+    return Task.findAll({
+      where: { assigned_to: userId },
+      order: [['createdAt', 'DESC']],
+    });
+  }
+
+  async updateStatus(task: Task, status: TaskStatus) {
+    task.status = status;
+    return task.save();
   }
 }

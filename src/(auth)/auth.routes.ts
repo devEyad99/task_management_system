@@ -11,5 +11,6 @@ const controller = new AuthController(service);
 
 router.post('/signup', controller.signup);
 router.post('/login', controller.login);
+router.post('/refreshToken', controller.refreshToken);
 
 export default router;

@@ -1,23 +1,32 @@
 import multer from 'multer';
 import path from 'path';
-import { Request } from 'express';
+import fs from 'fs';
+import { randomUUID } from 'crypto';
+import { AppError } from '../errors/AppError';
+
+const uploadsDirectory = path.join(__dirname, '../../uploads');
+fs.mkdirSync(uploadsDirectory, { recursive: true });
 
 // Set storage engine
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, '../../uploads'));
+  destination: function (_req, _file, cb) {
+    cb(null, uploadsDirectory);
   },
-  filename: function (req, file, cb) {
-    const timestamp = new Date().toISOString().replace(/:/g, '-');
-    cb(null, `${timestamp}-${file.originalname}`);
+  filename: function (_req, file, cb) {
+    const extensionByMimeType: Record<string, string> = {
+      'image/jpeg': '.jpg',
+      'image/png': '.png',
+      'image/gif': '.gif',
+    };
+    cb(null, `${randomUUID()}${extensionByMimeType[file.mimetype]}`);
   },
 });
 
 // Initialize upload
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 1000000 }, // 1MB limit
-  fileFilter: function (req, file, cb) {
+  limits: { fileSize: 1_000_000, files: 1 },
+  fileFilter: function (_req, file, cb) {
     checkFileType(file, cb);
   },
 });
@@ -28,14 +37,17 @@ function checkFileType(
   cb: multer.FileFilterCallback
 ) {
   // Allowed extensions
-  const filetypes = /jpeg|jpg|png|gif/;
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = filetypes.test(file.mimetype);
+  const allowedExtensions = new Set(['.jpeg', '.jpg', '.png', '.gif']);
+  const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/gif']);
+  const extname = allowedExtensions.has(
+    path.extname(file.originalname).toLowerCase()
+  );
+  const mimetype = allowedMimeTypes.has(file.mimetype);
 
   if (mimetype && extname) {
     return cb(null, true);
   } else {
-    cb(new Error('Images Only!'));
+    cb(new AppError(400, 'Only JPEG, PNG, and GIF images are allowed'));
   }
 }
 

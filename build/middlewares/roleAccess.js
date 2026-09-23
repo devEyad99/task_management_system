@@ -5,10 +5,9 @@ const adminRole = (req, res, next) => {
     var _a;
     const role = (_a = req.currentUser) === null || _a === void 0 ? void 0 : _a.role;
     if (role !== 'admin') {
-        res.status(403).json({
-            extra: 'admin role',
-            message: 'You are not authorized to access this route',
-        });
+        res
+            .status(403)
+            .json({ message: 'You are not authorized to access this route' });
         return;
     }
     next();
@@ -18,10 +17,9 @@ const managerAndAdminRole = (req, res, next) => {
     var _a;
     const role = (_a = req.currentUser) === null || _a === void 0 ? void 0 : _a.role;
     if (role !== 'manager' && role !== 'admin') {
-        res.status(403).json({
-            extra: 'manager role',
-            message: 'You are not authorized to access this route',
-        });
+        res
+            .status(403)
+            .json({ message: 'You are not authorized to access this route' });
         return;
     }
     next();

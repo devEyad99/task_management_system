@@ -1,14 +1,25 @@
 //
-import { DataTypes, Model } from 'sequelize';
+import {
+  CreationOptional,
+  DataTypes,
+  InferAttributes,
+  InferCreationAttributes,
+  Model,
+} from 'sequelize';
 import sequelize from '../config/database';
 
-class Task extends Model {
-  public id!: number;
-  public title!: string;
-  public description!: string;
-  public status!: string;
-  public deadline!: Date;
-  public assigned_to!: number;
+export const TASK_STATUSES = ['pending', 'in-progress', 'completed'] as const;
+export type TaskStatus = (typeof TASK_STATUSES)[number];
+
+class Task extends Model<InferAttributes<Task>, InferCreationAttributes<Task>> {
+  declare id: CreationOptional<number>;
+  declare title: string;
+  declare description: string;
+  declare status: TaskStatus;
+  declare deadline: Date;
+  declare assigned_to: number;
+  declare createdAt: CreationOptional<Date>;
+  declare updatedAt: CreationOptional<Date>;
 }
 Task.init(
   {
@@ -26,7 +37,7 @@ Task.init(
       allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM('pending', 'in-progress', 'completed'),
+      type: DataTypes.ENUM(...TASK_STATUSES),
       allowNull: false,
     },
     deadline: {
@@ -40,12 +51,23 @@ Task.init(
         model: 'users',
         key: 'id',
       },
+      onDelete: 'RESTRICT',
+      onUpdate: 'CASCADE',
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
     },
   },
   {
     sequelize,
     modelName: 'Task',
     tableName: 'tasks',
+    indexes: [{ fields: ['assigned_to'] }],
   }
 );
 

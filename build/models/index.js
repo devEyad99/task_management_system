@@ -10,5 +10,10 @@ exports.Task = task_model_1.default;
 const user_model_1 = __importDefault(require("./user.model"));
 exports.User = user_model_1.default;
 // A user can have multiple tasks
-user_model_1.default.hasMany(task_model_1.default, { foreignKey: 'assigned_to', as: 'tasks' });
+user_model_1.default.hasMany(task_model_1.default, {
+    foreignKey: 'assigned_to',
+    as: 'tasks',
+    onDelete: 'RESTRICT',
+    onUpdate: 'CASCADE',
+});
 task_model_1.default.belongsTo(user_model_1.default, { foreignKey: 'assigned_to', as: 'user' });

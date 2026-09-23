@@ -1,47 +1,42 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { TaskService } from './task.service';
 
 export class TaskController {
   constructor(private readonly taskService: TaskService) {}
 
-  createTask = async (req: Request, res: Response) => {
+  createTask = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const result = await this.taskService.createTask(req.body);
       res.status(201).json(result);
-    } catch (err: any) {
-      res.status(400).json({ message: err.message });
+    } catch (err) {
+      next(err);
     }
   };
 
-  getAllTasks = async (req: Request, res: Response) => {
+  getAllTasks = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { limit, page, title } = req.query;
-      const result = await this.taskService.getAllTasks({
-        limit: Number(limit),
-        page: Number(page),
-        title: title as string,
-      });
+      const result = await this.taskService.getAllTasks(req.query);
       res.status(200).json(result);
-    } catch (err: any) {
-      res.status(400).json({ message: err.message });
+    } catch (err) {
+      next(err);
     }
   };
 
-  getTaskById = async (req: Request, res: Response) => {
+  getTaskById = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const result = await this.taskService.getTaskById(req.params.id);
       res.status(200).json(result);
-    } catch (err: any) {
-      res.status(404).json({ message: err.message });
+    } catch (err) {
+      next(err);
     }
   };
 
-  deleteTask = async (req: Request, res: Response) => {
+  deleteTask = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const result = await this.taskService.deleteTask(req.params.id);
       res.status(200).json(result);
-    } catch (err: any) {
-      res.status(404).json({ message: err.message });
+    } catch (err) {
+      next(err);
     }
   };
 }

@@ -1,64 +1,72 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { UserService } from './user.service';
-import { Task } from '../models';
+import { AppError } from '../errors/AppError';
 
 export class UserController {
   constructor(private userService: UserService) {}
 
-  getAllUsers = async (req: Request, res: Response) => {
+  getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const limit = parseInt(req.query.limit as string) || 5;
-      const page = parseInt(req.query.page as string) || 1;
-      const name = req.query.name as string;
-      const result = await this.userService.getAllUsers(limit, page, name);
+      const result = await this.userService.getAllUsers(req.query);
       res.status(200).json(result);
     } catch (error) {
-      res.status(500).json({ message: (error as any).message });
+      next(error);
     }
   };
 
-  getUserById = async (req: Request, res: Response) => {
+  getUserById = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const user = await this.userService.getUserById(Number(req.params.id));
+      const user = await this.userService.getUserById(req.params.id);
       res.status(200).json(user);
     } catch (error) {
-      res.status(404).json({ message: (error as any).message });
+      next(error);
     }
   };
 
-  getMe = async (req: Request, res: Response) => {
+  getMe = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const tasks = await Task.findAll({ where: { assigned_to: req.currentUser?.id } });
-      const result = await this.userService.getMe(req.currentUser, tasks);
+      if (!req.currentUser) throw new AppError(401, 'Authentication required');
+      const result = await this.userService.getMe(req.currentUser);
       res.status(200).json(result);
     } catch (error) {
-      res.status(500).json({ message: (error as any).message });
+      next(error);
     }
   };
 
-  deleteUserById = async (req: Request, res: Response) => {
+  deleteUserById = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await this.userService.deleteUserById(Number(req.params.id));
+      const result = await this.userService.deleteUserById(req.params.id);
       res.status(200).json(result);
     } catch (error) {
-      res.status(404).json({ message: (error as any).message });
+      next(error);
     }
   };
 
-  updateUser = async (req: Request, res: Response) => {
+  updateUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const updatedUser = await this.userService.updateUser(Number(req.params.id), req.body);
+      const updatedUser = await this.userService.updateUser(
+        req.params.id,
+        req.body
+      );
       res.status(200).json(updatedUser);
     } catch (error) {
-      res.status(500).json({ message: (error as any).message });
+      next(error);
     }
   };
 
-  uploadProfileImage = async (req: Request, res: Response) => {
+  uploadProfileImage = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
-      if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+      if (!req.file) throw new AppError(400, 'No file uploaded');
+      if (!req.currentUser) throw new AppError(401, 'Authentication required');
 
-      const user = await this.userService.uploadProfileImage(req.currentUser?.id || 0, req.file.filename);
+      const user = await this.userService.uploadProfileImage(
+        req.currentUser.id,
+        req.file.filename
+      );
 
       res.status(200).json({
         message: 'Profile image updated successfully',
@@ -71,7 +79,34 @@ export class UserController {
         },
       });
     } catch (error) {
-      res.status(500).json({ message: (error as any).message });
+      next(error);
+    }
+  };
+
+  getMyTasks = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (!req.currentUser) throw new AppError(401, 'Authentication required');
+      res.status(200).json(await this.userService.getMyTasks(req.currentUser));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateTaskStatus = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      if (!req.currentUser) throw new AppError(401, 'Authentication required');
+      const task = await this.userService.updateTaskStatus(
+        req.currentUser,
+        req.params.id,
+        req.body
+      );
+      res.status(200).json(task);
+    } catch (error) {
+      next(error);
     }
   };
 }

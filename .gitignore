@@ -1,5 +1,36 @@
-# Ignore environment variables file
-.env
-
-# Ignore node_modules directory
+# Dependencies
 node_modules/
+
+# Environment files and local secrets
+.env
+.env.*
+!.env.example
+
+# TypeScript build output and caches
+build/
+dist/
+*.tsbuildinfo
+
+# Tests and coverage
+coverage/
+.nyc_output/
+
+# Runtime files
+uploads/
+logs/
+*.log
+*.pid
+*.pid.lock
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temporary files
+tmp/
+temp/
+.cache/
