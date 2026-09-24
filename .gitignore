@@ -5,6 +5,7 @@ docs
 .env
 .env.*
 !.env.example
+build/
 
 # TypeScript build output and caches
 build/
