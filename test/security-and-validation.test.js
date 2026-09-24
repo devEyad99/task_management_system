@@ -11,7 +11,11 @@ process.env.REFRESH_TOKEN_SECRET ||= 'test-refresh-secret-that-is-long-enough';
 
 const { AuthService } = require('../build/(auth)/auth.service');
 const { TaskService } = require('../build/(task)/task.service');
+const { TaskRepository } = require('../build/(task)/helper/task.repository');
 const { UserService } = require('../build/(user)/user.service');
+const { UserController } = require('../build/(user)/user.controller');
+const { Task } = require('../build/models');
+const { Op } = require('sequelize');
 const { parsePagination } = require('../build/helper/validation');
 const {
   getRefreshToken,
@@ -284,6 +288,276 @@ test('task updates reject internal fields and unknown assignees', async () => {
     service.updateTask(manager, '5', { assigned_to: 999 }),
     { statusCode: 404 }
   );
+});
+
+test('task listing validates and forwards filters, search, sorting, and pagination', async () => {
+  let countQuery;
+  let findQuery;
+  const repository = {
+    countTasks: async (query) => {
+      countQuery = query;
+      return 7;
+    },
+    findTasks: async (query) => {
+      findQuery = query;
+      return [{ id: 1 }];
+    },
+  };
+
+  const result = await new TaskService(repository).getAllTasks({
+    page: '2',
+    limit: '3',
+    title: 'legacy title',
+    search: 'shared text',
+    status: 'in-progress',
+    assignee: '9',
+    deadlineFrom: '2026-10-01T00:00:00.000Z',
+    deadlineTo: '2026-10-31T23:59:59.999Z',
+    overdue: 'true',
+    sortBy: 'deadline',
+    sortOrder: 'asc',
+  });
+
+  assert.equal(countQuery, findQuery);
+  assert.equal(findQuery.page, 2);
+  assert.equal(findQuery.limit, 3);
+  assert.equal(findQuery.offset, 3);
+  assert.equal(findQuery.title, 'legacy title');
+  assert.equal(findQuery.search, 'shared text');
+  assert.equal(findQuery.status, 'in-progress');
+  assert.equal(findQuery.assignedTo, 9);
+  assert.equal(findQuery.overdue, true);
+  assert.equal(findQuery.sortBy, 'deadline');
+  assert.equal(findQuery.sortOrder, 'ASC');
+  assert.ok(findQuery.deadlineFrom instanceof Date);
+  assert.ok(findQuery.deadlineTo instanceof Date);
+  assert.ok(findQuery.overdueAt instanceof Date);
+  assert.deepEqual(result, {
+    page: 2,
+    limit: 3,
+    totalPages: 3,
+    totalTasks: 7,
+    result: 1,
+    tasks: [{ id: 1 }],
+  });
+});
+
+test('task repository searches title and description and applies overdue sorting', async () => {
+  const originalFindAll = Task.findAll;
+  let options;
+  Task.findAll = async (queryOptions) => {
+    options = queryOptions;
+    return [];
+  };
+
+  try {
+    const now = new Date('2026-09-24T12:00:00.000Z');
+    await new TaskRepository().findTasks({
+      search: 'release',
+      overdue: true,
+      overdueAt: now,
+      sortBy: 'title',
+      sortOrder: 'ASC',
+      page: 1,
+      limit: 20,
+      offset: 0,
+    });
+
+    const conditions = options.where[Op.and];
+    const searchCondition = conditions.find((condition) => condition[Op.or]);
+    const searchedFields = searchCondition[Op.or].map(
+      (condition) => Object.keys(condition)[0]
+    );
+    assert.deepEqual(searchedFields, ['title', 'description']);
+    assert.ok(
+      conditions.some(
+        (condition) => condition.deadline?.[Op.lt]?.getTime() === now.getTime()
+      )
+    );
+    assert.ok(
+      conditions.some((condition) => condition.status?.[Op.ne] === 'completed')
+    );
+    assert.deepEqual(options.order, [
+      ['title', 'ASC'],
+      ['id', 'ASC'],
+    ]);
+    assert.equal(options.limit, 20);
+    assert.equal(options.offset, 0);
+  } finally {
+    Task.findAll = originalFindAll;
+  }
+});
+
+test('task listing rejects invalid and unknown query parameters', async () => {
+  const service = new TaskService({});
+  const invalidQueries = [
+    { unexpected: 'value' },
+    { status: 'blocked' },
+    { assignee: 'not-an-id' },
+    { assignee: '1', assigned_to: '1' },
+    {
+      deadlineFrom: '2026-11-01T00:00:00.000Z',
+      deadlineTo: '2026-10-01T00:00:00.000Z',
+    },
+    { overdue: 'yes' },
+    { sortBy: 'status' },
+    { sortOrder: 'sideways' },
+  ];
+
+  for (const query of invalidQueries) {
+    await assert.rejects(service.getAllTasks(query), { statusCode: 400 });
+  }
+});
+
+test('assigned employees and managers can read a task by ID', async () => {
+  const task = { id: 8, assigned_to: 2 };
+  const service = new TaskService({ findTaskById: async () => task });
+  const employee = {
+    id: 2,
+    name: 'Employee',
+    email: 'employee@example.com',
+    role: 'employee',
+    profile_image: null,
+  };
+  const manager = {
+    id: 10,
+    name: 'Manager',
+    email: 'manager@example.com',
+    role: 'manager',
+    profile_image: null,
+  };
+
+  assert.equal(await service.getTaskById(employee, '8'), task);
+  assert.equal(await service.getTaskById(manager, '8'), task);
+});
+
+test('an employee cannot read a task assigned to another user', async () => {
+  const service = new TaskService({
+    findTaskById: async () => ({ id: 8, assigned_to: 3 }),
+  });
+  const employee = {
+    id: 2,
+    name: 'Employee',
+    email: 'employee@example.com',
+    role: 'employee',
+    profile_image: null,
+  };
+
+  await assert.rejects(service.getTaskById(employee, '8'), {
+    statusCode: 403,
+  });
+});
+
+test('my-tasks remains an unpaginated array when pagination is not requested', async () => {
+  let repositoryArguments;
+  let countCalled = false;
+  const tasks = [{ id: 1 }, { id: 2 }];
+  const repository = {
+    findTasksByUserId: async (...args) => {
+      repositoryArguments = args;
+      return tasks;
+    },
+    countTasksByUserId: async () => {
+      countCalled = true;
+      return tasks.length;
+    },
+  };
+  const currentUser = {
+    id: 2,
+    name: 'Employee',
+    email: 'employee@example.com',
+    role: 'employee',
+    profile_image: null,
+  };
+
+  const result = await new UserService({}, repository).getMyTasks(
+    currentUser,
+    {}
+  );
+
+  assert.deepEqual(result.tasks, tasks);
+  assert.deepEqual(repositoryArguments, [2]);
+  assert.equal(countCalled, false);
+  assert.equal(result.pagination, undefined);
+});
+
+test('my-tasks pagination preserves the array body and exposes metadata headers', async () => {
+  const tasks = [{ id: 3 }, { id: 4 }];
+  const taskRepository = {
+    findTasksByUserId: async (userId, limit, offset) => {
+      assert.equal(userId, 2);
+      assert.equal(limit, 2);
+      assert.equal(offset, 2);
+      return tasks;
+    },
+    countTasksByUserId: async () => 5,
+  };
+  const controller = new UserController(
+    new UserService({}, taskRepository)
+  );
+  let responseStatus;
+  let responseBody;
+  let responseHeaders;
+  let nextError;
+  const response = {
+    set(headers) {
+      responseHeaders = headers;
+      return this;
+    },
+    status(status) {
+      responseStatus = status;
+      return this;
+    },
+    json(body) {
+      responseBody = body;
+      return this;
+    },
+  };
+
+  await controller.getMyTasks(
+    {
+      currentUser: {
+        id: 2,
+        name: 'Employee',
+        email: 'employee@example.com',
+        role: 'employee',
+        profile_image: null,
+      },
+      query: { page: '2', limit: '2' },
+    },
+    response,
+    (error) => {
+      nextError = error;
+    }
+  );
+
+  assert.equal(nextError, undefined);
+  assert.equal(responseStatus, 200);
+  assert.deepEqual(responseBody, tasks);
+  assert.deepEqual(responseHeaders, {
+    'X-Page': '2',
+    'X-Limit': '2',
+    'X-Total-Count': '5',
+    'X-Total-Pages': '3',
+  });
+});
+
+test('my-tasks rejects unsupported and invalid pagination parameters', async () => {
+  const service = new UserService({}, {});
+  const currentUser = {
+    id: 2,
+    name: 'Employee',
+    email: 'employee@example.com',
+    role: 'employee',
+    profile_image: null,
+  };
+
+  await assert.rejects(service.getMyTasks(currentUser, { status: 'pending' }), {
+    statusCode: 400,
+  });
+  await assert.rejects(service.getMyTasks(currentUser, { page: '0' }), {
+    statusCode: 400,
+  });
 });
 
 test('pagination rejects unbounded and invalid values', () => {

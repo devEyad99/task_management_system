@@ -21,6 +21,7 @@ app.use((0, cors_1.default)({
     origin: corsOrigin,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-requested-with'],
+    exposedHeaders: ['X-Page', 'X-Limit', 'X-Total-Count', 'X-Total-Pages'],
 }));
 app.use(express_1.default.json({ limit: '100kb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '100kb' }));

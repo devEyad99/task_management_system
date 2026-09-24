@@ -28,7 +28,6 @@ router.get(
 router.get(
   '/getTask/:id',
   authenticate,
-  managerAndAdminRole,
   taskController.getTaskById
 );
 router.patch(

@@ -120,8 +120,34 @@ export class UserService {
     return this.userRepository.save(user);
   }
 
-  async getMyTasks(currentUser: ICurrentUser) {
-    return this.taskRepository.findTasksByUserId(currentUser.id);
+  async getMyTasks(
+    currentUser: ICurrentUser,
+    queryInput: Record<string, unknown>
+  ) {
+    const query = requireObject(queryInput);
+    rejectUnknownFields(query, ['page', 'limit']);
+    const paginationRequested =
+      query.page !== undefined || query.limit !== undefined;
+    if (!paginationRequested) {
+      return {
+        tasks: await this.taskRepository.findTasksByUserId(currentUser.id),
+      };
+    }
+
+    const { page, limit, offset } = parsePagination(query.page, query.limit);
+    const [tasks, totalTasks] = await Promise.all([
+      this.taskRepository.findTasksByUserId(currentUser.id, limit, offset),
+      this.taskRepository.countTasksByUserId(currentUser.id),
+    ]);
+    return {
+      tasks,
+      pagination: {
+        page,
+        limit,
+        totalTasks,
+        totalPages: Math.ceil(totalTasks / limit),
+      },
+    };
   }
 
   async updateTaskStatus(

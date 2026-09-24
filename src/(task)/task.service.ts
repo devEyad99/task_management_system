@@ -6,7 +6,6 @@ import {
 } from './dto';
 import { AppError } from '../errors/AppError';
 import {
-  parsePagination,
   rejectUnknownFields,
   requireDate,
   requireObject,
@@ -16,6 +15,7 @@ import {
 } from '../helper/validation';
 import { ICurrentUser } from '../interfaces/ICurrentUser';
 import { applyTaskStatusTransition } from './helper/task-status';
+import { parseTaskQuery } from './helper/task-query';
 
 export class TaskService {
   constructor(private taskRepo: TaskRepository) {}
@@ -102,19 +102,17 @@ export class TaskService {
   }
 
   async getAllTasks(query: Record<string, unknown>) {
-    const { limit, offset } = parsePagination(query.page, query.limit);
-    const title =
-      query.title === undefined
-        ? undefined
-        : requireString(query.title, 'title', { max: 200 });
+    const taskQuery = parseTaskQuery(query);
 
     const [totalTasks, tasks] = await Promise.all([
-      this.taskRepo.countTasksByTitle(title),
-      this.taskRepo.findTasks(title, limit, offset),
+      this.taskRepo.countTasks(taskQuery),
+      this.taskRepo.findTasks(taskQuery),
     ]);
-    const totalPages = Math.ceil(totalTasks / limit);
+    const totalPages = Math.ceil(totalTasks / taskQuery.limit);
 
     return {
+      page: taskQuery.page,
+      limit: taskQuery.limit,
       totalPages,
       totalTasks,
       result: tasks.length,
@@ -122,16 +120,23 @@ export class TaskService {
     };
   }
 
-  async getTaskById(idValue: unknown) {
+  async getTaskById(currentUser: ICurrentUser, idValue: unknown) {
     const id = requirePositiveInteger(idValue, 'id');
     const task = await this.taskRepo.findTaskById(id);
     if (!task) throw new AppError(404, 'Task not found');
+    if (
+      currentUser.role === 'employee' &&
+      task.assigned_to !== currentUser.id
+    ) {
+      throw new AppError(403, 'You are not allowed to access this task');
+    }
     return task;
   }
 
   async deleteTask(idValue: unknown) {
     const id = requirePositiveInteger(idValue, 'id');
-    await this.getTaskById(id);
+    const task = await this.taskRepo.findTaskById(id);
+    if (!task) throw new AppError(404, 'Task not found');
     await this.taskRepo.deleteTask(id);
     return DeleteTaskByIdResponseDto.fromTaskId();
   }

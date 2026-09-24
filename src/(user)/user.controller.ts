@@ -86,7 +86,19 @@ export class UserController {
   getMyTasks = async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.currentUser) throw new AppError(401, 'Authentication required');
-      res.status(200).json(await this.userService.getMyTasks(req.currentUser));
+      const result = await this.userService.getMyTasks(
+        req.currentUser,
+        req.query
+      );
+      if (result.pagination) {
+        res.set({
+          'X-Page': String(result.pagination.page),
+          'X-Limit': String(result.pagination.limit),
+          'X-Total-Count': String(result.pagination.totalTasks),
+          'X-Total-Pages': String(result.pagination.totalPages),
+        });
+      }
+      res.status(200).json(result.tasks);
     } catch (error) {
       next(error);
     }
