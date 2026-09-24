@@ -3,6 +3,7 @@ import {
   CreateTaskDto,
   CreateTaskResponseDto,
   DeleteTaskByIdResponseDto,
+  TaskSummaryDto,
 } from './dto';
 import { AppError } from '../errors/AppError';
 import {
@@ -11,6 +12,7 @@ import {
   requireObject,
   requirePositiveInteger,
   requireString,
+  requireTaskPriority,
   requireTaskStatus,
 } from '../helper/validation';
 import { ICurrentUser } from '../interfaces/ICurrentUser';
@@ -26,6 +28,7 @@ export class TaskService {
       'title',
       'description',
       'status',
+      'priority',
       'deadline',
       'assigned_to',
     ]);
@@ -33,6 +36,10 @@ export class TaskService {
       title: requireString(data.title, 'title', { max: 200 }),
       description: requireString(data.description, 'description', { max: 5000 }),
       status: requireTaskStatus(data.status),
+      priority:
+        data.priority === undefined
+          ? 'medium'
+          : requireTaskPriority(data.priority),
       deadline: requireDate(data.deadline, 'deadline'),
       assigned_to: requirePositiveInteger(data.assigned_to, 'assigned_to'),
       createdBy: currentUser.id,
@@ -67,6 +74,7 @@ export class TaskService {
       'title',
       'description',
       'status',
+      'priority',
       'deadline',
       'assigned_to',
     ]);
@@ -96,6 +104,9 @@ export class TaskService {
     }
     if (data.status !== undefined) {
       applyTaskStatusTransition(task, requireTaskStatus(data.status));
+    }
+    if (data.priority !== undefined) {
+      task.priority = requireTaskPriority(data.priority);
     }
 
     return this.taskRepo.saveTask(task);
@@ -131,6 +142,38 @@ export class TaskService {
       throw new AppError(403, 'You are not allowed to access this task');
     }
     return task;
+  }
+
+  async getTaskSummary(
+    currentUser: ICurrentUser,
+    queryInput: Record<string, unknown>
+  ): Promise<TaskSummaryDto> {
+    const query = requireObject(queryInput);
+    rejectUnknownFields(query, []);
+    let assignedTo: number | undefined;
+    if (currentUser.role === 'employee') {
+      assignedTo = currentUser.id;
+    } else if (
+      currentUser.role !== 'manager' &&
+      currentUser.role !== 'admin'
+    ) {
+      throw new AppError(403, 'You are not allowed to access task summaries');
+    }
+    const summary = await this.taskRepo.getTaskSummary(assignedTo, new Date());
+
+    return {
+      total: Number(summary?.total ?? 0),
+      pending: Number(summary?.pending ?? 0),
+      'in-progress': Number(summary?.inProgress ?? 0),
+      completed: Number(summary?.completed ?? 0),
+      overdue: Number(summary?.overdue ?? 0),
+      priority: {
+        low: Number(summary?.priorityLow ?? 0),
+        medium: Number(summary?.priorityMedium ?? 0),
+        high: Number(summary?.priorityHigh ?? 0),
+        urgent: Number(summary?.priorityUrgent ?? 0),
+      },
+    };
   }
 
   async deleteTask(idValue: unknown) {

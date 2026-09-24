@@ -10,12 +10,15 @@ import sequelize from '../config/database';
 
 export const TASK_STATUSES = ['pending', 'in-progress', 'completed'] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
+export const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
+export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 
 class Task extends Model<InferAttributes<Task>, InferCreationAttributes<Task>> {
   declare id: CreationOptional<number>;
   declare title: string;
   declare description: string;
   declare status: TaskStatus;
+  declare priority: CreationOptional<TaskPriority>;
   declare deadline: Date;
   declare assigned_to: number;
   declare createdBy: CreationOptional<number | null>;
@@ -41,6 +44,11 @@ Task.init(
     status: {
       type: DataTypes.ENUM(...TASK_STATUSES),
       allowNull: false,
+    },
+    priority: {
+      type: DataTypes.ENUM(...TASK_PRIORITIES),
+      allowNull: false,
+      defaultValue: 'medium',
     },
     deadline: {
       type: DataTypes.DATE,
@@ -85,7 +93,12 @@ Task.init(
     sequelize,
     modelName: 'Task',
     tableName: 'tasks',
-    indexes: [{ fields: ['assigned_to'] }],
+    indexes: [
+      { fields: ['assigned_to'] },
+      { name: 'tasks_created_at_id_idx', fields: ['createdAt', 'id'] },
+      { name: 'tasks_priority_id_idx', fields: ['priority', 'id'] },
+      { name: 'tasks_deadline_id_idx', fields: ['deadline', 'id'] },
+    ],
   }
 );
 

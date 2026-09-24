@@ -16,6 +16,7 @@ const { UserService } = require('../build/(user)/user.service');
 const { UserController } = require('../build/(user)/user.controller');
 const { Task } = require('../build/models');
 const { Op } = require('sequelize');
+const sequelize = require('../build/config/database').default;
 const { parsePagination } = require('../build/helper/validation');
 const {
   getRefreshToken,
@@ -162,11 +163,13 @@ test('a manager can update, reassign, and complete any task', async () => {
     title: 'Updated title',
     assigned_to: 2,
     status: 'completed',
+    priority: 'urgent',
   });
 
   assert.equal(result.title, 'Updated title');
   assert.equal(result.assigned_to, 2);
   assert.equal(result.status, 'completed');
+  assert.equal(result.priority, 'urgent');
   assert.ok(result.completedAt instanceof Date);
   assert.equal(result.createdBy, 9);
 });
@@ -251,9 +254,33 @@ test('new tasks retain their authenticated creator and completion time', async (
   });
 
   assert.equal(createdTask.createdBy, manager.id);
+  assert.equal(createdTask.priority, 'medium');
   assert.ok(createdTask.completedAt instanceof Date);
   assert.equal(result.task.createdBy, manager.id);
+  assert.equal(result.task.priority, 'medium');
   assert.ok(result.task.completedAt instanceof Date);
+});
+
+test('task creation rejects invalid priority values', async () => {
+  const manager = {
+    id: 10,
+    name: 'Manager',
+    email: 'manager@example.com',
+    role: 'manager',
+    profile_image: null,
+  };
+
+  await assert.rejects(
+    new TaskService({}).createTask(manager, {
+      title: 'Task',
+      description: 'Description',
+      status: 'pending',
+      priority: 'critical',
+      deadline: '2026-10-01T00:00:00.000Z',
+      assigned_to: 2,
+    }),
+    { statusCode: 400 }
+  );
 });
 
 test('task updates reject internal fields and unknown assignees', async () => {
@@ -288,6 +315,10 @@ test('task updates reject internal fields and unknown assignees', async () => {
     service.updateTask(manager, '5', { assigned_to: 999 }),
     { statusCode: 404 }
   );
+  await assert.rejects(
+    service.updateTask(manager, '5', { priority: 'critical' }),
+    { statusCode: 400 }
+  );
 });
 
 test('task listing validates and forwards filters, search, sorting, and pagination', async () => {
@@ -310,11 +341,12 @@ test('task listing validates and forwards filters, search, sorting, and paginati
     title: 'legacy title',
     search: 'shared text',
     status: 'in-progress',
+    priority: 'high',
     assignee: '9',
     deadlineFrom: '2026-10-01T00:00:00.000Z',
     deadlineTo: '2026-10-31T23:59:59.999Z',
     overdue: 'true',
-    sortBy: 'deadline',
+    sortBy: 'priority',
     sortOrder: 'asc',
   });
 
@@ -325,9 +357,10 @@ test('task listing validates and forwards filters, search, sorting, and paginati
   assert.equal(findQuery.title, 'legacy title');
   assert.equal(findQuery.search, 'shared text');
   assert.equal(findQuery.status, 'in-progress');
+  assert.equal(findQuery.priority, 'high');
   assert.equal(findQuery.assignedTo, 9);
   assert.equal(findQuery.overdue, true);
-  assert.equal(findQuery.sortBy, 'deadline');
+  assert.equal(findQuery.sortBy, 'priority');
   assert.equal(findQuery.sortOrder, 'ASC');
   assert.ok(findQuery.deadlineFrom instanceof Date);
   assert.ok(findQuery.deadlineTo instanceof Date);
@@ -388,11 +421,45 @@ test('task repository searches title and description and applies overdue sorting
   }
 });
 
+test('task repository applies priority filtering and allowlisted priority sorting', async () => {
+  const originalFindAll = Task.findAll;
+  let options;
+  Task.findAll = async (queryOptions) => {
+    options = queryOptions;
+    return [];
+  };
+
+  try {
+    await new TaskRepository().findTasks({
+      priority: 'urgent',
+      overdueAt: new Date(),
+      sortBy: 'priority',
+      sortOrder: 'DESC',
+      page: 1,
+      limit: 10,
+      offset: 0,
+    });
+
+    assert.ok(
+      options.where[Op.and].some(
+        (condition) => condition.priority === 'urgent'
+      )
+    );
+    assert.deepEqual(options.order, [
+      ['priority', 'DESC'],
+      ['id', 'DESC'],
+    ]);
+  } finally {
+    Task.findAll = originalFindAll;
+  }
+});
+
 test('task listing rejects invalid and unknown query parameters', async () => {
   const service = new TaskService({});
   const invalidQueries = [
     { unexpected: 'value' },
     { status: 'blocked' },
+    { priority: 'critical' },
     { assignee: 'not-an-id' },
     { assignee: '1', assigned_to: '1' },
     {
@@ -429,6 +496,132 @@ test('assigned employees and managers can read a task by ID', async () => {
 
   assert.equal(await service.getTaskById(employee, '8'), task);
   assert.equal(await service.getTaskById(manager, '8'), task);
+});
+
+test('task summary is global for managers and admins', async () => {
+  const scopes = [];
+  const repository = {
+    getTaskSummary: async (assignedTo, now) => {
+      scopes.push(assignedTo);
+      assert.ok(now instanceof Date);
+      return {
+        total: 12,
+        pending: 4,
+        inProgress: 3,
+        completed: 5,
+        overdue: 2,
+        priorityLow: 1,
+        priorityMedium: 5,
+        priorityHigh: 4,
+        priorityUrgent: 2,
+      };
+    },
+  };
+  const service = new TaskService(repository);
+  const manager = {
+    id: 10,
+    name: 'Manager',
+    email: 'manager@example.com',
+    role: 'manager',
+    profile_image: null,
+  };
+  const admin = {
+    id: 11,
+    name: 'Admin',
+    email: 'admin@example.com',
+    role: 'admin',
+    profile_image: null,
+  };
+
+  const managerSummary = await service.getTaskSummary(manager, {});
+  const adminSummary = await service.getTaskSummary(admin, {});
+
+  assert.deepEqual(scopes, [undefined, undefined]);
+  assert.deepEqual(managerSummary, {
+    total: 12,
+    pending: 4,
+    'in-progress': 3,
+    completed: 5,
+    overdue: 2,
+    priority: { low: 1, medium: 5, high: 4, urgent: 2 },
+  });
+  assert.deepEqual(adminSummary, managerSummary);
+});
+
+test('task summary is restricted to the current employee assignment scope', async () => {
+  let employeeScope;
+  const repository = {
+    getTaskSummary: async (assignedTo) => {
+      employeeScope = assignedTo;
+      return {
+        total: '3',
+        pending: '1',
+        inProgress: '1',
+        completed: '1',
+        overdue: '1',
+        priorityLow: '0',
+        priorityMedium: '1',
+        priorityHigh: '1',
+        priorityUrgent: '1',
+      };
+    },
+  };
+  const employee = {
+    id: 7,
+    name: 'Employee',
+    email: 'employee@example.com',
+    role: 'employee',
+    profile_image: null,
+  };
+
+  const summary = await new TaskService(repository).getTaskSummary(employee, {});
+
+  assert.equal(employeeScope, 7);
+  assert.deepEqual(summary, {
+    total: 3,
+    pending: 1,
+    'in-progress': 1,
+    completed: 1,
+    overdue: 1,
+    priority: { low: 0, medium: 1, high: 1, urgent: 1 },
+  });
+});
+
+test('task summary repository applies employee scope inside the aggregate query', async () => {
+  const originalQuery = sequelize.query;
+  let sql;
+  let options;
+  sequelize.query = async (query, queryOptions) => {
+    sql = query;
+    options = queryOptions;
+    return [{ total: 0 }];
+  };
+
+  try {
+    const now = new Date('2026-09-24T12:00:00.000Z');
+    await new TaskRepository().getTaskSummary(7, now);
+
+    assert.match(sql, /WHERE assigned_to = :assignedTo/);
+    assert.equal(options.replacements.assignedTo, 7);
+    assert.equal(options.replacements.now, now);
+  } finally {
+    sequelize.query = originalQuery;
+  }
+});
+
+test('task summary rejects query parameters', async () => {
+  const service = new TaskService({});
+  const manager = {
+    id: 10,
+    name: 'Manager',
+    email: 'manager@example.com',
+    role: 'manager',
+    profile_image: null,
+  };
+
+  await assert.rejects(service.getTaskSummary(manager, { assignee: '1' }), {
+    statusCode: 400,
+  });
 });
 
 test('an employee cannot read a task assigned to another user', async () => {

@@ -51,6 +51,19 @@ export class TaskController {
     }
   };
 
+  getTaskSummary = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (!req.currentUser) throw new AppError(401, 'Authentication required');
+      const result = await this.taskService.getTaskSummary(
+        req.currentUser,
+        req.query
+      );
+      res.status(200).json(result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
   deleteTask = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const result = await this.taskService.deleteTask(req.params.id);

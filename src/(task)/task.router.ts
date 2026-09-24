@@ -25,6 +25,7 @@ router.get(
   managerAndAdminRole,
   taskController.getAllTasks
 );
+router.get('/summary', authenticate, taskController.getTaskSummary);
 router.get(
   '/getTask/:id',
   authenticate,

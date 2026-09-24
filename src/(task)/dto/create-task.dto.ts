@@ -1,9 +1,10 @@
-import { TaskStatus } from '../../models/task.model';
+import { TaskPriority, TaskStatus } from '../../models/task.model';
 
 export interface CreateTaskDto {
   title: string;
   description: string;
   status: TaskStatus;
+  priority: TaskPriority;
   deadline: Date;
   assigned_to: number;
   createdBy: number;

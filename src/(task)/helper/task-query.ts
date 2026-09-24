@@ -6,6 +6,7 @@ import {
   requireObject,
   requirePositiveInteger,
   requireString,
+  requireTaskPriority,
   requireTaskStatus,
 } from '../../helper/validation';
 import {
@@ -21,6 +22,7 @@ const TASK_QUERY_FIELDS = [
   'title',
   'search',
   'status',
+  'priority',
   'assignee',
   'assigned_to',
   'deadlineFrom',
@@ -103,6 +105,9 @@ export function parseTaskQuery(
     ...(query.status === undefined
       ? {}
       : { status: requireTaskStatus(query.status) }),
+    ...(query.priority === undefined
+      ? {}
+      : { priority: requireTaskPriority(query.priority) }),
     ...(assigneeValue === undefined
       ? {}
       : {

@@ -1,5 +1,6 @@
 // //
 import { Task } from '../../models';
+import { TaskPriority } from '../../models/task.model';
 
 export class CreateTaskResponseDto {
   task?: {
@@ -7,6 +8,7 @@ export class CreateTaskResponseDto {
     title: string;
     description: string;
     status: string;
+    priority: TaskPriority;
     deadline: Date;
     assigned_to: number;
     createdBy: number | null;
@@ -30,6 +32,7 @@ export class CreateTaskResponseDto {
       title: task.title,
       description: task.description,
       status: task.status,
+      priority: task.priority,
       deadline: task.deadline,
       assigned_to: task.assigned_to,
       createdBy: task.createdBy,

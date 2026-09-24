@@ -1,5 +1,10 @@
 import { AppError } from '../errors/AppError';
-import { TASK_STATUSES, TaskStatus } from '../models/task.model';
+import {
+  TASK_PRIORITIES,
+  TASK_STATUSES,
+  TaskPriority,
+  TaskStatus,
+} from '../models/task.model';
 import { USER_ROLES, UserRole } from '../models/user.model';
 
 type UnknownRecord = Record<string, unknown>;
@@ -94,6 +99,19 @@ export function requireTaskStatus(value: unknown): TaskStatus {
     );
   }
   return value as TaskStatus;
+}
+
+export function requireTaskPriority(value: unknown): TaskPriority {
+  if (
+    typeof value !== 'string' ||
+    !TASK_PRIORITIES.includes(value as TaskPriority)
+  ) {
+    throw new AppError(
+      400,
+      `priority must be one of: ${TASK_PRIORITIES.join(', ')}`
+    );
+  }
+  return value as TaskPriority;
 }
 
 export function requireDate(value: unknown, field: string): Date {
