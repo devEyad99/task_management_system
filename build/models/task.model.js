@@ -42,6 +42,22 @@ Task.init({
         onDelete: 'RESTRICT',
         onUpdate: 'CASCADE',
     },
+    createdBy: {
+        type: sequelize_1.DataTypes.INTEGER,
+        allowNull: true,
+        field: 'created_by',
+        references: {
+            model: 'users',
+            key: 'id',
+        },
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE',
+    },
+    completedAt: {
+        type: sequelize_1.DataTypes.DATE,
+        allowNull: true,
+        field: 'completed_at',
+    },
     createdAt: {
         type: sequelize_1.DataTypes.DATE,
         allowNull: false,

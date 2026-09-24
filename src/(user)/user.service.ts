@@ -14,6 +14,7 @@ import {
 import User from '../models/user.model';
 import { ICurrentUser } from '../interfaces/ICurrentUser';
 import { TaskRepository } from '../(task)/helper/task.repository';
+import { applyTaskStatusTransition } from '../(task)/helper/task-status';
 
 function toPublicUser(user: User) {
   return {
@@ -137,6 +138,7 @@ export class UserService {
     if (task.assigned_to !== currentUser.id) {
       throw new AppError(403, 'You are not allowed to update this task');
     }
-    return this.taskRepository.updateStatus(task, status);
+    applyTaskStatusTransition(task, status);
+    return this.taskRepository.saveTask(task);
   }
 }

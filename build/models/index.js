@@ -17,3 +17,17 @@ user_model_1.default.hasMany(task_model_1.default, {
     onUpdate: 'CASCADE',
 });
 task_model_1.default.belongsTo(user_model_1.default, { foreignKey: 'assigned_to', as: 'user' });
+// Creator attribution is retained when possible, but old tasks and tasks whose
+// creator was deleted are intentionally allowed to have no creator.
+user_model_1.default.hasMany(task_model_1.default, {
+    foreignKey: 'createdBy',
+    as: 'createdTasks',
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
+});
+task_model_1.default.belongsTo(user_model_1.default, {
+    foreignKey: 'createdBy',
+    as: 'creator',
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
+});

@@ -6,4 +6,6 @@ export interface CreateTaskDto {
   status: TaskStatus;
   deadline: Date;
   assigned_to: number;
+  createdBy: number;
+  completedAt: Date | null;
 }

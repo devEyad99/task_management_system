@@ -1,7 +1,6 @@
 import { Task, User } from '../../models';
 import { Op, WhereOptions } from 'sequelize';
 import { CreateTaskDto } from '../dto';
-import { TaskStatus } from '../../models/task.model';
 
 export class TaskRepository {
   async createTask(data: CreateTaskDto) {
@@ -46,8 +45,7 @@ export class TaskRepository {
     });
   }
 
-  async updateStatus(task: Task, status: TaskStatus) {
-    task.status = status;
+  async saveTask(task: Task) {
     return task.save();
   }
 }

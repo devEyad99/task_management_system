@@ -18,6 +18,8 @@ class Task extends Model<InferAttributes<Task>, InferCreationAttributes<Task>> {
   declare status: TaskStatus;
   declare deadline: Date;
   declare assigned_to: number;
+  declare createdBy: CreationOptional<number | null>;
+  declare completedAt: CreationOptional<Date | null>;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 }
@@ -53,6 +55,22 @@ Task.init(
       },
       onDelete: 'RESTRICT',
       onUpdate: 'CASCADE',
+    },
+    createdBy: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'created_by',
+      references: {
+        model: 'users',
+        key: 'id',
+      },
+      onDelete: 'SET NULL',
+      onUpdate: 'CASCADE',
+    },
+    completedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'completed_at',
     },
     createdAt: {
       type: DataTypes.DATE,

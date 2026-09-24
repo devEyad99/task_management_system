@@ -13,9 +13,35 @@ const taskService = new TaskService(taskRepo);
 const taskController = new TaskController(taskService);
 
 // Routes with middleware
-router.post('/createTask', authenticate, managerAndAdminRole, taskController.createTask);
-router.get('/getAllTasks', authenticate, managerAndAdminRole, taskController.getAllTasks);
-router.get('/getTask/:id', authenticate, managerAndAdminRole, taskController.getTaskById);
-router.delete('/deleteTask/:id', authenticate, managerAndAdminRole, taskController.deleteTask);
+router.post(
+  '/createTask',
+  authenticate,
+  managerAndAdminRole,
+  taskController.createTask
+);
+router.get(
+  '/getAllTasks',
+  authenticate,
+  managerAndAdminRole,
+  taskController.getAllTasks
+);
+router.get(
+  '/getTask/:id',
+  authenticate,
+  managerAndAdminRole,
+  taskController.getTaskById
+);
+router.patch(
+  '/updateTask/:id',
+  authenticate,
+  managerAndAdminRole,
+  taskController.updateTask
+);
+router.delete(
+  '/deleteTask/:id',
+  authenticate,
+  managerAndAdminRole,
+  taskController.deleteTask
+);
 
 export default router;

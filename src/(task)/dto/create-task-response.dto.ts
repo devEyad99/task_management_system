@@ -9,6 +9,8 @@ export class CreateTaskResponseDto {
     status: string;
     deadline: Date;
     assigned_to: number;
+    createdBy: number | null;
+    completedAt: Date | null;
   };
   user?: {
     id: number;
@@ -30,6 +32,8 @@ export class CreateTaskResponseDto {
       status: task.status,
       deadline: task.deadline,
       assigned_to: task.assigned_to,
+      createdBy: task.createdBy,
+      completedAt: task.completedAt,
     };
     result.user = user;
     result.message = 'Task created';
