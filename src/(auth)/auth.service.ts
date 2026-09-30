@@ -63,6 +63,7 @@ export class AuthService {
     return {
       message: 'User created successfully',
       token: getAccessToken(tokenPayload),
+      refreshToken: getRefreshToken(tokenPayload),
       user: toPublicUser(user),
     };
   }

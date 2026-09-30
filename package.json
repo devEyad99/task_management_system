@@ -1,5 +1,5 @@
 {
-  "name": "last_one",
+  "name": "task-management-system-backend",
   "version": "1.0.0",
   "main": "build/server.js",
   "scripts": {
@@ -9,10 +9,17 @@
     "test": "npm run build && node --test test",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": [],
+  "keywords": [
+    "task-management",
+    "typescript",
+    "express",
+    "postgresql",
+    "sequelize",
+    "rest-api"
+  ],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Role-based task management REST API built with TypeScript, Express, PostgreSQL, and Sequelize.",
   "dependencies": {
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",

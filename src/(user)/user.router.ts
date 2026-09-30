@@ -13,7 +13,12 @@ const taskRepo = new TaskRepository();
 const userService = new UserService(userRepo, taskRepo);
 const userController = new UserController(userService);
 
-router.get('/getAllUsers', authenticate, adminRole, userController.getAllUsers);
+router.get(
+  '/getAllUsers',
+  authenticate,
+  managerAndAdminRole,
+  userController.getAllUsers
+);
 router.get(
   '/getUserById/:id',
   authenticate,

@@ -37,6 +37,9 @@ User.init(
       type: DataTypes.STRING,
       unique: true,
       allowNull: false,
+      set(value: string) {
+        this.setDataValue('email', value.trim().toLowerCase());
+      },
     },
     password: {
       type: DataTypes.STRING,

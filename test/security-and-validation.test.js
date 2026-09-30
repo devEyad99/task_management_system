@@ -14,7 +14,7 @@ const { TaskService } = require('../build/(task)/task.service');
 const { TaskRepository } = require('../build/(task)/helper/task.repository');
 const { UserService } = require('../build/(user)/user.service');
 const { UserController } = require('../build/(user)/user.controller');
-const { Task } = require('../build/models');
+const { Task, User } = require('../build/models');
 const { Op } = require('sequelize');
 const sequelize = require('../build/config/database').default;
 const { parsePagination } = require('../build/helper/validation');
@@ -45,6 +45,44 @@ test('public signup rejects privileged roles before persistence', async () => {
     }),
     { statusCode: 403 }
   );
+});
+
+test('signup creates a complete token pair and normalizes the user email', async () => {
+  let createdUserData;
+  const repository = {
+    findUserByEmail: async () => null,
+    hashPassword: async () => 'hash',
+    createUser: async (data) => {
+      createdUserData = data;
+      return {
+        id: 1,
+        ...data,
+        profile_image: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    },
+  };
+
+  const result = await new AuthService(repository).signup({
+    name: 'Employee User',
+    email: '  Employee@Example.COM ',
+    password: 'password123',
+  });
+
+  assert.equal(createdUserData.email, 'employee@example.com');
+  assert.equal(verifyAccessToken(result.token).email, 'employee@example.com');
+  assert.equal(typeof result.refreshToken, 'string');
+});
+
+test('the user model normalizes email values as a database invariant', () => {
+  const user = User.build({
+    name: 'Employee User',
+    email: ' Employee@Example.COM ',
+    password: 'hash',
+  });
+
+  assert.equal(user.email, 'employee@example.com');
 });
 
 test('login rejects passwords that exceed the bcrypt byte limit', async () => {
