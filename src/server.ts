@@ -8,8 +8,8 @@ dotenv.config();
 const PORT = process.env.PORT || 3001;
 async function startServer() {
   try {
-    await sequelize.sync();
-    console.log('Database is connected successfuly...');
+    await sequelize.authenticate();
+    console.log('Database connection established successfully...');
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}...`);
     });

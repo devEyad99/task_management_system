@@ -38,8 +38,9 @@ Task.init(
       allowNull: false,
     },
     description: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: false,
+      validate: { len: [1, 5000] },
     },
     status: {
       type: DataTypes.ENUM(...TASK_STATUSES),

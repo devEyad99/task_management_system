@@ -9,6 +9,7 @@ import {
   rejectUnknownFields,
   requireEmail,
   requireObject,
+  requirePassword,
   requireString,
 } from '../helper/validation';
 import { ICurrentUser } from '../interfaces/ICurrentUser';
@@ -38,13 +39,7 @@ export class AuthService {
     rejectUnknownFields(data, ['name', 'email', 'password', 'role']);
     const name = requireString(data.name, 'name', { min: 2, max: 100 });
     const email = requireEmail(data.email);
-    const password = requireString(data.password, 'password', {
-      min: 8,
-      max: 72,
-    });
-    if (Buffer.byteLength(password, 'utf8') > 72) {
-      throw new AppError(400, 'password must not exceed 72 bytes');
-    }
+    const password = requirePassword(data.password, { min: 8 });
 
     // Public registration must never mint elevated accounts.
     if (data.role !== undefined && data.role !== 'employee') {
@@ -76,7 +71,7 @@ export class AuthService {
     const data = requireObject(input);
     rejectUnknownFields(data, ['email', 'password']);
     const email = requireEmail(data.email);
-    const password = requireString(data.password, 'password', { max: 72 });
+    const password = requirePassword(data.password);
     const credentials: UserLoginDto = { email, password };
     const user = await this.authRepository.findUserByEmail(credentials.email);
     if (!user) {

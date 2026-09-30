@@ -1,12 +1,13 @@
 # Dependencies
 node_modules/
-docs
+docs/*
+!docs/FRONTEND_API_GUIDE.md
+!docs/BACKEND_ARCHITECTURE.md
+!docs/API_REFERENCE.md
 # Environment files and local secrets
 .env
 .env.*
 !.env.example
-build/
-
 # TypeScript build output and caches
 build/
 dist/

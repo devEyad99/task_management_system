@@ -35,6 +35,8 @@ export class UserService {
   ) {}
 
   async getAllUsers(query: Record<string, unknown>) {
+    requireObject(query);
+    rejectUnknownFields(query, ['page', 'limit', 'name']);
     const { limit, offset } = parsePagination(query.page, query.limit);
     const name =
       query.name === undefined

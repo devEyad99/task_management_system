@@ -19,6 +19,10 @@ const { Op } = require('sequelize');
 const sequelize = require('../build/config/database').default;
 const { parsePagination } = require('../build/helper/validation');
 const {
+  adminRole,
+  managerAndAdminRole,
+} = require('../build/middlewares/roleAccess');
+const {
   getRefreshToken,
   verifyAccessToken,
 } = require('../build/utiles/jwt');
@@ -41,6 +45,42 @@ test('public signup rejects privileged roles before persistence', async () => {
     }),
     { statusCode: 403 }
   );
+});
+
+test('login rejects passwords that exceed the bcrypt byte limit', async () => {
+  let repositoryCalled = false;
+  const repository = {
+    findUserByEmail: async () => {
+      repositoryCalled = true;
+      return null;
+    },
+  };
+
+  await assert.rejects(
+    new AuthService(repository).login({
+      email: 'employee@example.com',
+      password: 'é'.repeat(40),
+    }),
+    { statusCode: 400 }
+  );
+  assert.equal(repositoryCalled, false);
+});
+
+test('role middleware allows configured roles and rejects unrelated users', () => {
+  const manager = { currentUser: { role: 'manager' } };
+  const employee = { currentUser: { role: 'employee' } };
+  let managerError;
+  let employeeError;
+
+  managerAndAdminRole(manager, {}, (error) => {
+    managerError = error;
+  });
+  adminRole(employee, {}, (error) => {
+    employeeError = error;
+  });
+
+  assert.equal(managerError, undefined);
+  assert.equal(employeeError.statusCode, 403);
 });
 
 test('user updates reject password mass assignment', async () => {
@@ -281,6 +321,36 @@ test('task creation rejects invalid priority values', async () => {
     }),
     { statusCode: 400 }
   );
+});
+
+test('task descriptions accepted by validation fit the database column type', async () => {
+  const description = 'a'.repeat(5000);
+  let persistedDescription;
+  const repository = {
+    findUserById: async () => ({ id: 2, name: 'Assignee' }),
+    createTask: async (data) => {
+      persistedDescription = data.description;
+      return { id: 13, ...data };
+    },
+  };
+  const manager = {
+    id: 10,
+    name: 'Manager',
+    email: 'manager@example.com',
+    role: 'manager',
+    profile_image: null,
+  };
+
+  await new TaskService(repository).createTask(manager, {
+    title: 'Long description',
+    description,
+    status: 'pending',
+    deadline: '2026-10-01T00:00:00.000Z',
+    assigned_to: 2,
+  });
+
+  assert.equal(persistedDescription.length, 5000);
+  assert.equal(Task.getAttributes().description.type.toString(), 'TEXT');
 });
 
 test('task updates reject internal fields and unknown assignees', async () => {
@@ -753,9 +823,29 @@ test('my-tasks rejects unsupported and invalid pagination parameters', async () 
   });
 });
 
+test('user listing rejects unknown query parameters before repository access', async () => {
+  let repositoryCalled = false;
+  const repository = {
+    findAll: async () => {
+      repositoryCalled = true;
+      return [];
+    },
+  };
+
+  await assert.rejects(
+    new UserService(repository, {}).getAllUsers({ role: 'admin' }),
+    { statusCode: 400 }
+  );
+  assert.equal(repositoryCalled, false);
+});
+
 test('pagination rejects unbounded and invalid values', () => {
   assert.throws(() => parsePagination('0', '5'), { statusCode: 400 });
   assert.throws(() => parsePagination('1', '101'), { statusCode: 400 });
+  assert.throws(
+    () => parsePagination(String(Number.MAX_SAFE_INTEGER), '100'),
+    { statusCode: 400 }
+  );
   assert.deepEqual(parsePagination(undefined, undefined), {
     page: 1,
     limit: 5,

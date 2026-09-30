@@ -55,6 +55,20 @@ export function requireEmail(value: unknown): string {
   return email;
 }
 
+export function requirePassword(
+  value: unknown,
+  options: { min?: number } = {}
+): string {
+  const password = requireString(value, 'password', {
+    min: options.min,
+    max: 72,
+  });
+  if (Buffer.byteLength(password, 'utf8') > 72) {
+    throw new AppError(400, 'password must not exceed 72 bytes');
+  }
+  return password;
+}
+
 export function requirePositiveInteger(value: unknown, field: string): number {
   const parsed =
     typeof value === 'number'
@@ -78,7 +92,11 @@ export function parsePagination(
   if (limit > 100) {
     throw new AppError(400, 'limit must not exceed 100');
   }
-  return { page, limit, offset: (page - 1) * limit };
+  const offset = (page - 1) * limit;
+  if (!Number.isSafeInteger(offset)) {
+    throw new AppError(400, 'pagination range is too large');
+  }
+  return { page, limit, offset };
 }
 
 export function requireRole(value: unknown): UserRole {
